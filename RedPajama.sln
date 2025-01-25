@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedPajama", "RedPajama\RedPajama.csproj", "{D8445F8C-AE65-4913-AB4E-5AAE1277973E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedPajama.Tests", "RedPajama.Tests\RedPajama.Tests.csproj", "{0B38FDED-EE9F-46BF-9DE7-74BEF90AC819}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedPajama.ConsoleTest", "RedPajama.ConsoleTest\RedPajama.ConsoleTest.csproj", "{45E96A91-EE37-4E0E-9737-1E6C7877991A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D8445F8C-AE65-4913-AB4E-5AAE1277973E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8445F8C-AE65-4913-AB4E-5AAE1277973E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8445F8C-AE65-4913-AB4E-5AAE1277973E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8445F8C-AE65-4913-AB4E-5AAE1277973E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B38FDED-EE9F-46BF-9DE7-74BEF90AC819}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B38FDED-EE9F-46BF-9DE7-74BEF90AC819}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B38FDED-EE9F-46BF-9DE7-74BEF90AC819}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B38FDED-EE9F-46BF-9DE7-74BEF90AC819}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45E96A91-EE37-4E0E-9737-1E6C7877991A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45E96A91-EE37-4E0E-9737-1E6C7877991A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45E96A91-EE37-4E0E-9737-1E6C7877991A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45E96A91-EE37-4E0E-9737-1E6C7877991A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
