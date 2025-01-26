@@ -10,12 +10,23 @@ namespace RedPajama;
  * kept those two things separate so that in the future a source generator could be used instead of reflection
  */
 
+/// <summary>
+/// This class uses reflection to build the type model which gets passed to the GNBf and JSON generator.
+/// </summary>
+/// <typeparam name="T">The type for which the model is being built.</typeparam>
 public class TypeModelBuilder<T>
 {
     private readonly Dictionary<string, string> _descriptions = new();
     private readonly Dictionary<string, string[]> _allowedValues = new();
     private readonly HashSet<Type> _visitedTypes = [];
 
+    /// <summary>
+    /// Adds a description to the specified property.
+    /// </summary>
+    /// <typeparam name="TProperty">The type of the property.</typeparam>
+    /// <param name="propertySelector">An expression that selects the property.</param>
+    /// <param name="description">The description to add.</param>
+    /// <returns>The current instance of <see cref="TypeModelBuilder{T}"/>.</returns>
     public TypeModelBuilder<T> WithDescription<TProperty>(Expression<Func<T, TProperty>> propertySelector,
         string description)
     {
@@ -24,6 +35,13 @@ public class TypeModelBuilder<T>
         return this;
     }
 
+    /// <summary>
+    /// Adds allowed values to the specified property.
+    /// </summary>
+    /// <typeparam name="TProperty">The type of the property.</typeparam>
+    /// <param name="propertySelector">An expression that selects the property.</param>
+    /// <param name="allowedValues">The allowed values to add.</param>
+    /// <returns>The current instance of <see cref="TypeModelBuilder{T}"/>.</returns>
     public TypeModelBuilder<T> WithAllowedValues<TProperty>(Expression<Func<T, TProperty>> propertySelector,
         string[] allowedValues)
     {
@@ -32,6 +50,10 @@ public class TypeModelBuilder<T>
         return this;
     }
 
+    /// <summary>
+    /// Builds the type model for the specified type.
+    /// </summary>
+    /// <returns>The built type model.</returns>
     public TypeModel Build()
     {
         var type = typeof(T);

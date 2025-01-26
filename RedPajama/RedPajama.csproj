@@ -10,11 +10,16 @@
         <Nullable>enable</Nullable>
         <Description>RedPajama is a C# library that generates structured JSON samples and GBNF (Generalized Backus-Naur Form) grammars from C# types. It's designed to enhance Large Language Model (LLM) interactions by providing type-safe, well-structured data generation and parsing capabilities.</Description>
         <Copyright>Phil Scott</Copyright>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/phil-scott-78/RedPajama</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="MinVer" PrivateAssets="All" Version="6.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
 </Project>

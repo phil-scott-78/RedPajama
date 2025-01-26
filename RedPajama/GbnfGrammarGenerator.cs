@@ -1,22 +1,61 @@
 ﻿namespace RedPajama;
 
+/// <summary>
+/// Configuration settings for the GBNF grammar generator.
+/// </summary>
 public class GbnfGeneratorSettings
 {
+    /// <summary>
+    /// The minimum length for generated text sequences.
+    /// </summary>
+    /// <value>Default value is 1.</value>
     public int DefaultMinLength { get; init; } = 1;
+
+    /// <summary>
+    /// The maximum length for generated text sequences.
+    /// </summary>
+    /// <value>Default value is 512.</value>
     public int DefaultMaxLength { get; init; } = 512;
+
+    /// <summary>
+    /// The opening delimiter character for grammar rules.
+    /// </summary>
+    /// <value>Default value is '⟨' (U+27E8).</value>
     public char OpeningDelimiter { get; init; } = '⟨';
+
+    /// <summary>
+    /// The closing delimiter character for grammar rules.
+    /// </summary>
+    /// <value>Default value is '⟩' (U+27E9).</value>
     public char ClosingDelimiter { get; init; } = '⟩';
-    public bool PrettyPrint { get; init; } = true;
-    public string Indent { get; init; } = "    ";
 }
 
-public class GbnfGenerator(GbnfGeneratorSettings? settings = null)
+
+
+/// <summary>
+/// Generates GBNF grammar rules based on the provided settings and root type.
+/// </summary>
+public class GbnfGenerator
 {
-    private readonly GbnfGeneratorSettings _settings = settings ?? new GbnfGeneratorSettings();
+    private readonly GbnfGeneratorSettings _settings;
     
     private readonly HashSet<string> _generatedRules = [];
     private readonly List<string> _rules = [];
-    
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GbnfGenerator"/> class with the specified settings.
+    /// </summary>
+    /// <param name="settings">The settings to use for the generator. If null, default settings will be used.</param>
+    public GbnfGenerator(GbnfGeneratorSettings? settings = null)
+    {
+        _settings = settings ?? new GbnfGeneratorSettings();
+    }
+
+    /// <summary>
+    /// Generates a GBNF grammar rule for the specified root type.
+    /// </summary>
+    /// <param name="rootType">The root type for which to generate the grammar rule.</param>
+    /// <returns>A string containing the generated GBNF grammar rule.</returns>
     public string Generate(BaseTypeModel rootType)
     {
         _rules.Clear();

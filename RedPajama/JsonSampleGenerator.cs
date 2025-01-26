@@ -1,20 +1,66 @@
 ﻿namespace RedPajama;
 
+/// <summary>
+/// Settings for the JSON sample generator.
+/// </summary>
 public class JsonSampleGeneratorSettings
 {
+    /// <summary>
+    /// The opening delimiter character for grammar rules.
+    /// </summary>
+    /// <value>Default value is '⟨' (U+27E8).</value>
     public char OpeningDelimiter { get; init; } = '⟨';
+
+    /// <summary>
+    /// The closing delimiter character for grammar rules.
+    /// </summary>
+    /// <value>Default value is '⟩' (U+27E9).</value>
     public char ClosingDelimiter { get; init; } = '⟩';
+
+    /// <summary>
+    /// Gets a value indicating whether to pretty print the JSON.
+    /// </summary>
     public bool PrettyPrint { get; init; } = true;
+
+    /// <summary>
+    /// Gets the string used for indentation in pretty printed JSON.
+    /// </summary>
     public string Indent { get; init; } = "    ";
 }
 
-public class JsonSampleGenerator(JsonSampleGeneratorSettings? settings = null)
+/// <summary>
+/// Generates JSON samples based on the provided type models and settings.
+/// </summary>
+public class JsonSampleGenerator
 {
-    private readonly JsonSampleGeneratorSettings _settings = settings ?? new JsonSampleGeneratorSettings();
+    private readonly JsonSampleGeneratorSettings _settings;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JsonSampleGenerator"/> class.
+    /// </summary>
+    /// <param name="settings">The settings for the JSON sample generator. If null, default settings will be used.</param>
+    public JsonSampleGenerator(JsonSampleGeneratorSettings? settings = null)
+    {
+        _settings = settings ?? new JsonSampleGeneratorSettings();
+    }
+
+    /// <summary>
+    /// Generates a JSON sample based on the provided type model.
+    /// </summary>
+    /// <param name="model">The type model to generate the JSON sample for.</param>
+    /// <returns>A JSON sample as a string.</returns>
     public string Generate(TypeModel model)
     {
         return GenerateForType(model, 0);
+    }
+    
+    /// <summary>
+    /// Sample instructions to use to nudge the LLM to output the JSON with template content replaced.
+    /// </summary>
+    /// <returns></returns>
+    public string SampleInstructions()
+    {
+        return "Replace all placeholders (" + AsTemplate("...") + " in the format with the actual values extracted from the text. Do not return placeholders in the final output.";
     }
 
     private string GenerateForType(BaseTypeModel type, int indentLevel, string? propName = null)
@@ -147,16 +193,8 @@ public class JsonSampleGenerator(JsonSampleGeneratorSettings? settings = null)
         return _settings.PrettyPrint ? $" // {string.Join(". ", comments)}" : "";
     }
 
-    /// <summary>
-    /// Sample instructions to use to nudge the LLM to output the JSON with template content replaced.
-    /// </summary>
-    /// <returns></returns>
-    public string SampleInstructions()
-    {
-        return "Replace all placeholders (" + AsTemplate("...") + " in the format with the actual values extracted from the text. Do not return placeholders in the final output.";
-    }
     
-    public string AsTemplate(string input) => input.StartsWith('\"') || input.EndsWith('\"')
+    private string AsTemplate(string input) => input.StartsWith('\"') || input.EndsWith('\"')
         ? $"{_settings.OpeningDelimiter}{input.Substring(1, input.Length - 2)}{_settings.ClosingDelimiter}"
         : $"{_settings.OpeningDelimiter}{input}{_settings.ClosingDelimiter}";
 }
