@@ -4,6 +4,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
         <RootNamespace>RedPajama.Tests</RootNamespace>
         <TargetFramework>net9.0</TargetFramework>
         <!--
