@@ -6,7 +6,8 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseNameAndEmail : ITestRoutine
 {
-    class Person
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+    private class Person
     {
         public required string FirstName { get; init; }
         public required string LastName { get; init; }

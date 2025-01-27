@@ -6,14 +6,16 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseBookCollection : ITestRoutine
 {
-    class Book
-    {
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+    private class Book
+    {    
         public required string Title { get; init; }
         public required string Author { get; init; }
         public required int Year { get; init; }
     }
 
-    class Library
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+    private class Library
     {
         public required string Name { get; init; }
         public required Book[] Books { get; init; }

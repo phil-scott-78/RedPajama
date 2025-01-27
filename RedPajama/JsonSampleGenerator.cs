@@ -60,7 +60,8 @@ public class JsonSampleGenerator
     /// <returns></returns>
     public string SampleInstructions()
     {
-        return "Replace all placeholders (" + AsTemplate("...") + " in the format with the actual values extracted from the text. Do not return placeholders in the final output.";
+        return
+            $"Replace all placeholders, {AsTemplate("...")}, in the format with the actual values extracted from the text. Do not return placeholders in the final output.";
     }
 
     private string GenerateForType(BaseTypeModel type, int indentLevel, string? propName = null)
@@ -75,15 +76,15 @@ public class JsonSampleGenerator
             StringTypeModel => AsTemplate($"\"string value of {propName}\""),
             IntegerTypeModel => AsTemplate($"integer value of {propName}"),
             DecimalTypeModel => AsTemplate($"decimal value of {propName}"),
-            DateTypeModel => AsTemplate($"\"date value of {propName} in ISO 8601 format\""),
+            DateTypeModel => AsTemplate($"\"ISO 8601 format date value of {propName}\""),
             _ => throw new ArgumentException($"Unsupported type: {type.GetType().Name}")
         };
     }
 
     private string GenerateComplexType(TypeModel type, int indentLevel)
     {
-        bool prettyPrint = _settings.PrettyPrint;
-        string indent = _settings.Indent;
+        var prettyPrint = _settings.PrettyPrint;
+        var indent = _settings.Indent;
 
         
         if (type.Properties.Length == 0)
@@ -195,6 +196,6 @@ public class JsonSampleGenerator
 
     
     private string AsTemplate(string input) => input.StartsWith('\"') || input.EndsWith('\"')
-        ? $"{_settings.OpeningDelimiter}{input.Substring(1, input.Length - 2)}{_settings.ClosingDelimiter}"
+        ? $"\"{_settings.OpeningDelimiter}{input.Substring(1, input.Length - 2)}{_settings.ClosingDelimiter}\""
         : $"{_settings.OpeningDelimiter}{input}{_settings.ClosingDelimiter}";
 }

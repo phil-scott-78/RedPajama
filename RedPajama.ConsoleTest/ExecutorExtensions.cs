@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using LLama;
 using LLama.Abstractions;
 using LLama.Common;
 using LLama.Sampling;
@@ -32,9 +31,9 @@ public static class ExecutorExtensions
         
         var inferenceParams = new InferenceParams
         {
-            SamplingPipeline = new DefaultSamplingPipeline
+            SamplingPipeline = new GreedySamplingPipeline()
             {
-                Grammar = new Grammar(gbnf, "root")
+                Grammar = new Grammar(gbnf, "root"),
             },
         };
 

@@ -33,7 +33,8 @@ var tests = new List<ITestRoutine>()
     new ParseOrderStatus(),
     new ParseNestedAddress(),
     new ParseBookCollection(),
-    new ParseTags()
+    new ParseTags(),
+    new ParseAndInferColor()
 };
 
 foreach (var modelFile in models)

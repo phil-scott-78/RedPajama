@@ -1,25 +1,28 @@
 using System.ComponentModel;
+using JetBrains.Annotations;
 using LLama;
 using LLama.Abstractions;
 
 namespace RedPajama.ConsoleTest.TestRoutines;
 
-
 internal class ParseNestedAddress : ITestRoutine
 {
-    class Address
+
+    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
+    private class Customer 
+    {
+        public required string Name { get; init; }
+        public required Address ShippingAddress { get; init; }
+        public required Address BillingAddress { get; init; }
+    }
+    
+    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
+    private class Address
     {
         public required string Street { get; init; }
         public required string City { get; init; }
         [Description("Digits only")]
         public required string ZipCode { get; init; }
-    }
-
-    class Customer 
-    {
-        public required string Name { get; init; }
-        public required Address ShippingAddress { get; init; }
-        public required Address BillingAddress { get; init; }
     }
    
     public async Task Run(LLamaWeights model, IContextParams parameters)

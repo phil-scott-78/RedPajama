@@ -80,14 +80,13 @@ internal static class Tester
     }
 }
 
-
-class BunchOfNotEqualException(string caller, NotEqualException[] exception) : Exception
+internal class BunchOfNotEqualException(string caller, NotEqualException[] exception) : Exception
 {
     public string Caller { get; } = caller;
     public NotEqualException[] Exception { get; } = exception;
 }
 
-class NotEqualException(string caller, string expected, string actual) : Exception
+internal class NotEqualException(string caller, string expected, string actual) : Exception
 {
     public string Caller { get; } = caller;
     public string Expected { get; } = expected;

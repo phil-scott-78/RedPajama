@@ -90,10 +90,10 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                               "Text": ⟨string value of Text⟩,
+                               "Text": "⟨string value of Text⟩",
                                "Number": ⟨integer value of Number⟩,
                                "Amount": ⟨decimal value of Amount⟩,
-                               "Date": ⟨date value of Date in ISO 8601 format⟩
+                               "Date": "⟨ISO 8601 format date value of Date⟩"
                            }
                            """;
         json.ShouldContainWithoutWhitespace(expectedJson);
@@ -111,7 +111,7 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                               "Texts": [⟨string value of String_1⟩, ⟨String_2⟩, ⟨String_N⟩],
+                               "Texts": ["⟨string value of String_1⟩", "⟨String_2⟩", "⟨String_N⟩"],
                                "Numbers": [⟨integer value of Int32_1⟩, ⟨Int32_2⟩, ⟨Int32_N⟩]
                            }
                            """;
@@ -130,7 +130,7 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                               "Status": ⟨Active|Inactive|Pending⟩
+                               "Status": "⟨Active|Inactive|Pending⟩"
                            }
                            """;
         json.ShouldContainWithoutWhitespace(expectedJson);
@@ -150,7 +150,7 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                               "Name": ⟨string value of Name⟩ // User's full name
+                               "Name": "⟨string value of Name⟩" // User's full name
                            }
                            """;
         json.ShouldContainWithoutWhitespace(expectedJson);
@@ -160,8 +160,7 @@ public class JsonSampleGeneratorTests
     public void Generate_WithAllowedValues_CreatesCorrectJson()
     {
         // Arrange
-        var builder = new TypeModelBuilder<RestrictedType>();
-        builder.WithAllowedValues(x => x.Category, new[] { "A", "B", "C" });
+        var builder = new TypeModelBuilder<RestrictedType>().WithAllowedValues(x => x.Category, ["A", "B", "C"]);
         var typeModel = builder.Build();
 
         // Act
@@ -170,7 +169,7 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                               "Category": ⟨A|B|C⟩ // Allowed values: A or B or C
+                               "Category": "⟨A|B|C⟩" // Allowed values: A or B or C
                            }
                            """;
         json.ShouldContainWithoutWhitespace(expectedJson);
@@ -188,10 +187,10 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                               "Name": ⟨string value of Name⟩,
+                               "Name": "⟨string value of Name⟩",
                                "Address": {
-                                   "Street": ⟨string value of Street⟩,
-                                   "City": ⟨string value of City⟩
+                                   "Street": "⟨string value of Street⟩",
+                                   "City": "⟨string value of City⟩"
                                }
                            }
                            """;
@@ -211,7 +210,7 @@ public class JsonSampleGeneratorTests
         var expectedJson = """
                            {
                                "Items": [{
-                               "Name": ⟨string value of Name⟩,
+                               "Name": "⟨string value of Name⟩",
                                "Price": ⟨decimal value of Price⟩
                            }, Item_2, Item_N]
                            """;
@@ -229,7 +228,7 @@ public class JsonSampleGeneratorTests
 
         // Assert
         var expectedJson = """
-                           {"Name": ⟨string value of Name⟩,"Age": ⟨integer value of Age⟩}
+                           {"Name": "⟨string value of Name⟩","Age": ⟨integer value of Age⟩}
                            """;
         json.ShouldBe(expectedJson);
     }
@@ -264,7 +263,7 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                           	"Name": ⟨string value of Name⟩,
+                           	"Name": "⟨string value of Name⟩",
                            	"Age": ⟨integer value of Age⟩
                            }
                            """;

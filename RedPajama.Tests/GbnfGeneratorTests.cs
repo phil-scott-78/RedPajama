@@ -7,8 +7,7 @@ namespace RedPajama.Tests;
 [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 public class GbnfGeneratorTests
 {
-
-    
+ 
     public class PrimitiveTypes
     {
         public string Text { get; set; } = "";
@@ -132,7 +131,7 @@ public class GbnfGeneratorTests
     {
         // Arrange
         var builder = new TypeModelBuilder<RestrictedType>();
-        builder.WithAllowedValues(x => x.Category, new[] { "A", "B", "C" });
+        builder.WithAllowedValues(x => x.Category, ["A", "B", "C"]);
         var typeModel = builder.Build();
 
         // Act
