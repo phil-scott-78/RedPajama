@@ -18,7 +18,7 @@ internal class ParseAndInferColor : ITestRoutine
    
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters);
+        var executor = new StatelessExecutor(model, parameters){ApplyTemplate = true};
 
         var item = await executor.InferAsync<ColorDescription>("""
                                                                Extract the item details and infer the closest rainbow color:

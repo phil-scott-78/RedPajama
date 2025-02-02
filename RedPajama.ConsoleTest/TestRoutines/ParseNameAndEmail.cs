@@ -16,8 +16,7 @@ internal class ParseNameAndEmail : ITestRoutine
     
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters);
-
+        var executor = new StatelessExecutor(model, parameters){ApplyTemplate = true};
         var person = await executor.InferAsync<Person>("""
                                                        Extract the first name, last name and e-mail from this text:
                                                        ```

@@ -23,9 +23,11 @@ public static class ExecutorExtensions
 
         var typeModelBuilder = new TypeModelBuilder<T>().Build();
         var gbnfGenerator = new GbnfGenerator();
+        var larkGenerator = new LlGuidanceGenerator();
         var jsonSampleGenerator = new JsonSampleGenerator();
         
         var gbnf = gbnfGenerator.Generate(typeModelBuilder);
+        var lark = larkGenerator.Generate(typeModelBuilder);
         var jsonSample = jsonSampleGenerator.Generate(typeModelBuilder);
         var sampleInstructions = jsonSampleGenerator.SampleInstructions();
         

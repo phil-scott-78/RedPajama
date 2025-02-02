@@ -23,7 +23,7 @@ internal class ParseBookCollection : ITestRoutine
    
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters);
+        var executor = new StatelessExecutor(model, parameters){ApplyTemplate = true};
 
         var library = await executor.InferAsync<Library>("""
                                                          Extract the library name and book details:

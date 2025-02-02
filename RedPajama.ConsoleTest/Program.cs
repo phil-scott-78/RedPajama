@@ -1,14 +1,23 @@
-﻿using LLama;
+﻿using System.Text;
+using LLama;
 using LLama.Common;
 using LLama.Native;
 using RedPajama.ConsoleTest;
 using RedPajama.ConsoleTest.TestRoutines;
 using Spectre.Console;
+using Spectre.Console.Extensions;
+
+Console.OutputEncoding = Encoding.UTF8;
+
+NativeLogConfig.llama_log_set((_, _) => { });
+
+// await new VarietyOfScenarios().RunAsync();
+// Environment.Exit(0);
 
 AnsiConsole.WriteLine();
 var path = AnsiConsole.Prompt(new TextPrompt<string>("Path to file or folder: "));
 
-List<string> models = new(); 
+List<string> models = []; 
 
 if (File.Exists(path))
 {
@@ -25,10 +34,11 @@ else
     return -1;
 }
 
-NativeLogConfig.llama_log_set((_, _) => { });
+
 
 var tests = new List<ITestRoutine>()
 {
+    new ParseComplexRestaurantOrder(),
     new ParseNameAndEmail(),
     new ParseOrderStatus(),
     new ParseNestedAddress(),
@@ -51,16 +61,22 @@ foreach (var modelFile in models)
     foreach (var r in tests)
     {
         try
-        {
+        { 
             AnsiConsole.MarkupInterpolated($"  {r.GetType().Name}: ");
-            await r.Run(model, parameters);
-            AnsiConsole.MarkupLineInterpolated($" [green]Ok[/]");
+            await r.Run(model, parameters).Spinner(Spinner.Known.Dots2);
+            AnsiConsole.MarkupLineInterpolated($"[green]Ok[/]");
         }
         catch (BunchOfNotEqualException e)
         {
-            var msg =  string.Join(Environment.NewLine,
-                e.Exception.Select(i => $"   * [blue]{i.Caller.EscapeMarkup()}[/] expected to be {i.Expected.EscapeMarkup()}, received {i.Actual.EscapeMarkup()}"));
+            var msg = string.Join(Environment.NewLine,
+                e.Exception.Select(i =>
+                    $"   * [blue]{i.Caller.EscapeMarkup()}[/] expected to be {i.Expected.EscapeMarkup()}, received {i.Actual.EscapeMarkup()}"));
             AnsiConsole.MarkupLine($"[red]Failed testing {e.Caller.EscapeMarkup()}[/].{Environment.NewLine}{msg}");
+        }
+        catch (Exception e)
+        {
+            AnsiConsole.MarkupLine($"[red]Failed {e.Message.EscapeMarkup()}[/]");
+
         }
     }
     
@@ -68,3 +84,4 @@ foreach (var modelFile in models)
 }
 
 return 0;
+

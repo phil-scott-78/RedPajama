@@ -9,7 +9,7 @@ internal static class Tester
     {
         ArgumentNullException.ThrowIfNull(actual);
         
-        if (!actual.Trim().Equals(expected.Trim(), StringComparison.CurrentCulture))
+        if (!actual.Trim().Equals(expected.Trim(), StringComparison.CurrentCultureIgnoreCase))
         {
             throw new NotEqualException(callerArgumentExpression ?? "something", expected, actual);
         }

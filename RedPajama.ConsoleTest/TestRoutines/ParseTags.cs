@@ -15,8 +15,7 @@ internal class ParseTags : ITestRoutine
    
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters);
-
+        var executor = new StatelessExecutor(model, parameters){ApplyTemplate = true};
         var post = await executor.InferAsync<BlogPost>("""
                                                        Extract the title and tags from this blog post:
                                                        ```

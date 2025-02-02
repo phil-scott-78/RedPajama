@@ -29,8 +29,7 @@ internal class ParseOrderStatus : ITestRoutine
     
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters);
-
+        var executor = new StatelessExecutor(model, parameters){ApplyTemplate = true};
         var order = await executor.InferAsync<Order>("""
                                                      Extract the order ID, status and last update time from this notification:
                                                      ```
