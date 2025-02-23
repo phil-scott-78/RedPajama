@@ -22,20 +22,29 @@ internal class ParseOrderStatus : ITestRoutine
     {
         public required string OrderId { get; init; }
         public required OrderStatus Status { get; init; }
-        [Description("Time in UTC")]
-        public required DateTimeOffset LastUpdated { get; init; }
+        [Description("Time in UTC")] public required DateTimeOffset LastUpdated { get; init; }
         public required decimal Balance { get; init; }
     }
-    
+
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters){ApplyTemplate = true};
-        var order = await executor.InferAsync<Order>("""
-                                                     Extract the order ID, status and last update time from this notification:
-                                                     ```
-                                                     Order #A12345 status changed to Processing on January 25, 2024 at 3:30 PM UTC. Balance due is $95.05
-                                                     ```
-                                                     """);
+        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
+        const string prompt = """
+                              Extract the order ID, status and last update time from this notification:
+                              ```
+                              Order #A12345 status changed to Processing on January 25, 2024 at 3:30 PM UTC. Balance due is $95.05
+                              ```
+                              """;
+
+        Order order;
+        if (!model.IsThinkingModel())
+        {
+            order = await executor.InferAsync<Order>(prompt);
+        }
+        else
+        {
+            (order, _) = (await executor.InferWithThoughtsAsync<Order>(prompt));
+        }
 
         order.ShouldAllBe([
             o => o.OrderId.ShouldBe("A12345"),

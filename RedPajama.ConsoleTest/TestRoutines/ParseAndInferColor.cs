@@ -20,15 +20,25 @@ internal class ParseAndInferColor : ITestRoutine
     {
         var executor = new StatelessExecutor(model, parameters){ApplyTemplate = true};
 
-        var item = await executor.InferAsync<ColorDescription>("""
-                                                               Extract the item details and infer the closest rainbow color:
-                                                               ```
-                                                               Item: Fresh Banana
-                                                               Description: A ripe, bright-colored curved fruit with a thick peel
-                                                               ```
-                                                               """);
+        var prompt = """
+                     Extract the item details and infer the closest rainbow color:
+                     ```
+                     Item: Fresh Banana
+                     Description: A ripe, bright-colored curved fruit with a thick peel
+                     ```
+                     """;
+        
+        ColorDescription color;
+        if (!model.IsThinkingModel())
+        {
+            color = await executor.InferAsync<ColorDescription>(prompt);
+        }
+        else
+        {
+            (color, _) = (await executor.InferWithThoughtsAsync<ColorDescription>(prompt));
+        }
 
-        item.ShouldAllBe([
+        color.ShouldAllBe([
             i => i.Item.ShouldBe("Fresh Banana"),
             i => i.Description.ShouldBe("A ripe, bright-colored curved fruit with a thick peel"),
             i => i.Color.ShouldBe("yellow")  // LLM should infer yellow as the appropriate rainbow color for a banana

@@ -1,6 +1,7 @@
 using JetBrains.Annotations;
 using LLama;
 using LLama.Abstractions;
+using LLama.Batched;
 
 namespace RedPajama.ConsoleTest.TestRoutines;
 
@@ -23,17 +24,28 @@ internal class ParseBookCollection : ITestRoutine
    
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters){ApplyTemplate = true};
+        var executor = new StatelessExecutor(model, parameters);
 
-        var library = await executor.InferAsync<Library>("""
-                                                         Extract the library name and book details:
-                                                         ```
-                                                         Central Library:
-                                                         1. The Great Gatsby by F. Scott Fitzgerald (1925)
-                                                         2. 1984 by George Orwell (1949)
-                                                         3. To Kill a Mockingbird by Harper Lee (1960)
-                                                         ```
-                                                         """);
+        const string prompt = """
+                              Extract the library name and book details:
+                              ```
+                              Central Library:
+                              1. The Great Gatsby by F. Scott Fitzgerald (1925)
+                              2. 1984 by George Orwell (1949)
+                              3. To Kill a Mockingbird by Harper Lee (1960)
+                              ```
+                              """;
+        
+        Library library;
+        if (!model.IsThinkingModel())
+        {
+            library = await executor.InferAsync<Library>(prompt);
+        }
+        else
+        {
+            (library, _) = (await executor.InferWithThoughtsAsync<Library>(prompt));
+        }
+
 
         library.ShouldAllBe([
             l => l.Name.ShouldBe("Central Library"),

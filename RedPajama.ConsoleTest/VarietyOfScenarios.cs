@@ -3,13 +3,12 @@ using System.Text;
 using LLama;
 using LLama.Common;
 using LLama.Sampling;
-using Spectre.Console;
 
 namespace RedPajama.ConsoleTest;
 
 public class VarietyOfScenarios
 {
-    private const string basePrompt = """
+    private const string BasePrompt = """
                                       Parse this restaurant order:
                                       ```
                                       Order #RTH789 - Placed at 2024-01-27 18:30:00
@@ -31,7 +30,7 @@ public class VarietyOfScenarios
                                       ```
                                       """;
     
-    private (LLamaWeights Model, ModelParams Parameters)? _modelInfo = null;
+    private (LLamaWeights Model, ModelParams Parameters)? _modelInfo;
 
 
     private async Task Prompt(string prompt, string? grammar = null)
@@ -45,9 +44,15 @@ public class VarietyOfScenarios
             ApplyTemplate = true,
             // SystemMessage = "Return the results as JSON only, no formatting."
         };
-        var inferenceParams = grammar != null
-            ? new InferenceParams { SamplingPipeline = new GreedySamplingPipeline() { Grammar = new Grammar(grammar, "root"), }, }
-            : new InferenceParams { SamplingPipeline = new GreedySamplingPipeline() };
+        InferenceParams inferenceParams;
+        if (grammar != null)
+        {
+            inferenceParams = new InferenceParams
+                { SamplingPipeline = new GreedySamplingPipeline() { Grammar = new Grammar(grammar, "root"), }, };
+            
+        }
+        else
+            inferenceParams = new InferenceParams { SamplingPipeline = new GreedySamplingPipeline() };
 
 
         var stopwatch = new Stopwatch();
@@ -91,7 +96,7 @@ public class VarietyOfScenarios
     {
         Console.WriteLine("No Guidance");
         Console.WriteLine("==========");
-        await Prompt(basePrompt + 
+        await Prompt(BasePrompt + 
                      """
                      
                      Return results as valid JSON
@@ -102,7 +107,7 @@ public class VarietyOfScenarios
     {
         Console.WriteLine("SampleJson");
         Console.WriteLine("==========");
-        await Prompt(basePrompt + 
+        await Prompt(BasePrompt + 
                      """
 
                      Return results as valid JSON in the following format:
@@ -143,7 +148,7 @@ public class VarietyOfScenarios
         
         Console.WriteLine("WithSimpleGbnf");
         Console.WriteLine("==========");
-        await Prompt(basePrompt + 
+        await Prompt(BasePrompt + 
                      """
                      
                      Return results as valid JSON in the following format:
@@ -210,7 +215,7 @@ public class VarietyOfScenarios
         
         Console.WriteLine("JsonGbnf");
         Console.WriteLine("==========");
-        await Prompt(basePrompt + 
+        await Prompt(BasePrompt + 
                      """
                      
                      Return results as valid JSON in the following format:
@@ -279,7 +284,7 @@ public class VarietyOfScenarios
         
         Console.WriteLine("CompleteGbnf");
         Console.WriteLine("==========");
-        await Prompt(basePrompt + 
+        await Prompt(BasePrompt + 
                      """
                      
                      Return results as valid JSON in the following format:

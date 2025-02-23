@@ -1,23 +1,29 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using LLama;
 using LLama.Common;
 using LLama.Native;
+using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using RedPajama.ConsoleTest;
 using RedPajama.ConsoleTest.TestRoutines;
 using Spectre.Console;
 using Spectre.Console.Extensions;
 
 Console.OutputEncoding = Encoding.UTF8;
-
-NativeLogConfig.llama_log_set((_, _) => { });
-
-// await new VarietyOfScenarios().RunAsync();
-// Environment.Exit(0);
+NativeLibraryConfig.All.WithCuda();
+NativeLogConfig.llama_log_set((a, b) =>
+{
+    Debug.WriteLine($"[{a}]: {b}");
+});
 
 AnsiConsole.WriteLine();
-var path = AnsiConsole.Prompt(new TextPrompt<string>("Path to file or folder: "));
 
-List<string> models = []; 
+var path = args.Length == 1
+    ? args[0]
+    : AnsiConsole.Prompt(new TextPrompt<string>("Path to GGUF model file or folder containing multiple: "));
+
+List<string> models = [];
 
 if (File.Exists(path))
 {
@@ -30,11 +36,16 @@ else if (Path.Exists(path))
 }
 else
 {
-    AnsiConsole.MarkupLineInterpolated($"[red]Error:[/] could not find file or folder {path}");
-    return -1;
+    var directory = Path.GetDirectoryName(path) ?? "";
+    var pattern = Path.GetFileName(path) ?? "*"; // Default to "*" if no pattern
+
+    var matcher = new Matcher();
+    matcher.AddInclude(pattern);
+    var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(directory)));
+
+    models.AddRange(result.Files.Select(i => Path.Combine(directory, i.Path)));
+
 }
-
-
 
 var tests = new List<ITestRoutine>()
 {
@@ -53,35 +64,41 @@ foreach (var modelFile in models)
     {
         ContextSize = 4000,
         GpuLayerCount = -1,
+        // BatchSize = 2048,
     };
-    
+
     AnsiConsole.MarkupLineInterpolated($"[blue]{Path.GetFileNameWithoutExtension(modelFile)}[/]");
     using var model = await LLamaWeights.LoadFromFileAsync(parameters);
 
     foreach (var r in tests)
     {
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
         try
-        { 
+        {
             AnsiConsole.MarkupInterpolated($"  {r.GetType().Name}: ");
-            await r.Run(model, parameters).Spinner(Spinner.Known.Dots2);
-            AnsiConsole.MarkupLineInterpolated($"[green]Ok[/]");
+            var spinner = model.IsThinkingModel() ? Spinner.Known.Dots8Bit : Spinner.Known.Dots2;
+            await r.Run(model, parameters).Spinner(spinner);
+            AnsiConsole.MarkupLine($"[green]Ok[/] [grey]{stopWatch.ElapsedMilliseconds}ms[/]");
         }
         catch (BunchOfNotEqualException e)
         {
             var msg = string.Join(Environment.NewLine,
                 e.Exception.Select(i =>
                     $"   * [blue]{i.Caller.EscapeMarkup()}[/] expected to be {i.Expected.EscapeMarkup()}, received {i.Actual.EscapeMarkup()}"));
-            AnsiConsole.MarkupLine($"[red]Failed testing {e.Caller.EscapeMarkup()}[/].{Environment.NewLine}{msg}");
+            // don't use MarkupInterpolated here because we are using {msg} which contains markup in it, which under the interpolated version
+            // would be escaped.
+            AnsiConsole.MarkupLine(
+                $"[red]Failed testing {e.Caller.EscapeMarkup()}[/] [grey]{stopWatch.ElapsedMilliseconds}ms[/]{Environment.NewLine}{msg}");
         }
         catch (Exception e)
         {
-            AnsiConsole.MarkupLine($"[red]Failed {e.Message.EscapeMarkup()}[/]");
-
+            AnsiConsole.MarkupLineInterpolated(
+                $"[red]Failed {e.Message}[/] [grey]{stopWatch.ElapsedMilliseconds}ms[/]");
         }
     }
-    
+
     AnsiConsole.WriteLine();
 }
 
 return 0;
-
