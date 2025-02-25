@@ -71,8 +71,9 @@ public class JsonSampleGenerator
         return type switch
         {
             TypeModel complexType => GenerateComplexType(complexType, indentLevel),
-            ArrayTypeModel arrayType => GenerateArray(arrayType),
+            ArrayTypeModel arrayType => GenerateArray(arrayType, propName, indentLevel),
             EnumTypeModel enumType => GenerateEnum(enumType),
+            BoolTypeModel => AsTemplate($"\"true or value value of {propName}\""),
             StringTypeModel => AsTemplate($"\"string value of {propName}\""),
             IntegerTypeModel => AsTemplate($"integer value of {propName}"),
             DecimalTypeModel => AsTemplate($"decimal value of {propName}"),
@@ -106,23 +107,23 @@ public class JsonSampleGenerator
         return $"{{{newLine}{string.Join(newLine, properties)}{newLine}{indent1}}}";
     }
 
-    private string GenerateArray(ArrayTypeModel type)
+    private string GenerateArray(ArrayTypeModel type, string propName, int indentLevel)
     {
         // Generate first element with _1 suffix if it's a string with allowed values
-        var firstElement = GenerateArrayElement(type.ArrayType, 1);
+        var firstElement = GenerateArrayElement(type.ArrayType, 1, propName, indentLevel);
         
         // Generate second element with _2 placeholder
-        var secondElement = GenerateArrayPlaceholder(type.ArrayType, 2);
+        var secondElement = GenerateArrayPlaceholder(type.ArrayType, "2", propName);
         
         // Generate N placeholder for additional elements
-        var nElement = GenerateArrayPlaceholder(type.ArrayType, "N");
+        var nElement = GenerateArrayPlaceholder(type.ArrayType, "N", propName);
 
         return $"[{firstElement}, {secondElement}, {nElement}]";
     }
 
-    private string GenerateArrayElement(BaseTypeModel type, int index)
+    private string GenerateArrayElement(BaseTypeModel type, int index, string propName, int indentLevel)
     {
-        var value = GenerateForType(type, 0);
+        var value = GenerateForType(type, indentLevel, propName);
         if (value.StartsWith("\"" + _settings.OpeningDelimiter) && value.EndsWith(_settings.ClosingDelimiter + "\""))
         {
             // For string types with allowed values, add the index suffix
@@ -137,16 +138,17 @@ public class JsonSampleGenerator
         return value;
     }
 
-    private string GenerateArrayPlaceholder(BaseTypeModel type, object index)
+    private string GenerateArrayPlaceholder(BaseTypeModel type, string index, string propName)
     {
         return type switch
         {
-            StringTypeModel => AsTemplate($"\"{type.Name}_{index}\""),
-            IntegerTypeModel => AsTemplate($"{type.Name}_{index}"),
-            DecimalTypeModel => AsTemplate($"{type.Name}_{index}"),
-            DateTypeModel => AsTemplate($"\"{type.Name}_{index}\""),
-            EnumTypeModel => AsTemplate($"\"{type.Name}_{index}\""),
-            _ => $"{type.Name}_{index}"
+            StringTypeModel => AsTemplate($"\"{propName}_{index}\""),
+            IntegerTypeModel => AsTemplate($"{propName}_{index}"),
+            DecimalTypeModel => AsTemplate($"{propName}_{index}"),
+            BoolTypeModel => AsTemplate($"{propName}_{index}"),
+            DateTypeModel => AsTemplate($"\"{propName}_{index}\""),
+            EnumTypeModel => AsTemplate($"\"{propName}_{index}\""),
+            _ => $"{propName}_{index}"
         };
     }
 
@@ -171,27 +173,11 @@ public class JsonSampleGenerator
     private string GenerateComment(PropertyModel propertyModel)
     {
         var description = propertyModel.Description;
-        string[]? allowedValues = null;
-        if (propertyModel.PropertyType is StringTypeModel stringTypeModel)
-        {
-            allowedValues = stringTypeModel.AllowedValues;
-        }
-        
-        if (string.IsNullOrWhiteSpace(description) && (allowedValues == null || allowedValues.Length == 0))
+        if (string.IsNullOrWhiteSpace(description))
             return "";
 
-        var comments = new List<string>();
-        
-        if (!string.IsNullOrWhiteSpace(description))
-            comments.Add(description);
 
-        if (allowedValues is { Length: > 0 })
-        {
-            var values = string.Join(" or ", allowedValues);
-            comments.Add($"Allowed values: {values}");
-        }
-            
-        return _settings.PrettyPrint ? $" // {string.Join(". ", comments)}" : "";
+        return $" // {description}";
     }
 
     

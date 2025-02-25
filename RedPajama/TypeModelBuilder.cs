@@ -89,6 +89,11 @@ public class TypeModelBuilder<T>
             if (type == typeof(DateTime) || type==typeof(DateTimeOffset))
                 return new DateTypeModel(type.Name);
 
+            if (type == typeof(bool))
+            {
+                return new BoolTypeModel(type.Name);
+            }
+
             if (type.IsEnum)
                 return new EnumTypeModel(type.Name, Enum.GetNames(type));
 

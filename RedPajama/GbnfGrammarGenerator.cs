@@ -30,8 +30,6 @@ public class GbnfGeneratorSettings
     public char ClosingDelimiter { get; init; } = '⟩';
 }
 
-
-
 /// <summary>
 /// Generates GBNF grammar rules based on the provided settings and root type.
 /// </summary>
@@ -61,7 +59,8 @@ public class GbnfGenerator
         _rules.Clear();
         _generatedRules.Clear();
         
-        var charRule =  """char ::= [^"\\\x7F\x00-\x1F""" + _settings.OpeningDelimiter + _settings.ClosingDelimiter + """] | [\\] (["\\bfnrt] | "u" [0-9a-fA-F]{4})""";
+        var charRule =
+            $$"""char ::= [^"\\\x7F\x00-\x1F{{_settings.OpeningDelimiter}}{{_settings.ClosingDelimiter}}] | [\\] (["\\bfnrt] | "u" [0-9a-fA-F]{4})""";
         const string spaceRule = """space ::= | " " | "\n" [ \t]{0,20}""";
 
         // Add basic rules that are always needed
@@ -83,6 +82,7 @@ public class GbnfGenerator
             IntegerTypeModel => GenerateIntegerRule(),
             DecimalTypeModel => GenerateDecimalRule(),
             DateTypeModel => GenerateDateRule(),
+            BoolTypeModel => GenerateBoolRule(),
             ArrayTypeModel arrayType => GenerateArrayRule(arrayType, ruleName),
             TypeModel complexType => GenerateComplexTypeRule(complexType, ruleName),
             EnumTypeModel enumType => GenerateEnumRule(enumType),
@@ -103,16 +103,30 @@ public class GbnfGenerator
         }
 
         var lengthConstraint = $$"""{{{_settings.DefaultMinLength}}, {{_settings.DefaultMaxLength}}}""";
-        if (stringTypeModel.MinLength != null || stringTypeModel.MaxLength != null)
+        if (stringTypeModel.MinLength == null && stringTypeModel.MaxLength == null)
         {
-            var min = stringTypeModel.MinLength ?? _settings.DefaultMinLength;
-            var max = stringTypeModel.MaxLength ?? _settings.DefaultMaxLength;
-            lengthConstraint = $"{{{min},{(max == int.MaxValue ? "" : max.ToString())}}}";
+            return $"""
+                 "\"" char{lengthConstraint} "\"" space
+                 """;
         }
         
+        var min = stringTypeModel.MinLength ?? _settings.DefaultMinLength;
+        var max = stringTypeModel.MaxLength ?? _settings.DefaultMaxLength;
+        lengthConstraint = $$"""
+                             {{{min}},{{(max == int.MaxValue ? "" : max.ToString())}}}
+                             """;
+
         return $"""
                 "\"" char{lengthConstraint} "\"" space
                 """;
+    }
+    
+    private string GenerateBoolRule()
+    {
+        // Only support true or false values (without quotes)
+        return """
+               ("true" | "false") space
+               """;
     }
     
     private string GenerateIntegerRule()
@@ -143,7 +157,9 @@ public class GbnfGenerator
             _generatedRules.Add(itemRuleName);
         }
         
-        return $"\"[\" space ({itemRuleName} (\",\" space {itemRuleName})*)? \"]\" space";
+        return $"""
+                "[" space ({itemRuleName} ("," space {itemRuleName})*)? "]" space
+                """;
     }
     
     private string GenerateComplexTypeRule(TypeModel type, string ruleName)
@@ -157,11 +173,13 @@ public class GbnfGenerator
             
             // Generate the key-value pair rule
             var kvRuleName = $"{propertyRuleName}-kv";
-            _rules.Add($"{kvRuleName} ::= \"\\\"{property.Name}\\\"\" space \":\" space {propertyValueRule}");
+            _rules.Add($"""{kvRuleName} ::= "\"{property.Name}\"" space ":" space {propertyValueRule}""");
             propertyRules.Add(kvRuleName);
         }
         
-        return $"\"{{\" space {string.Join(" \",\" space ", propertyRules)} \"}}\" space";
+        return $$"""
+                 "{" space {{string.Join(" \",\" space ", propertyRules)}} "}" space
+                 """;
     }
     
     private string GenerateEnumRule(EnumTypeModel type)

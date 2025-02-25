@@ -53,6 +53,14 @@ public class DecimalTypeModel(string name) : BaseTypeModel(name) // decimal, flo
 }
 
 /// <summary>
+/// Represents a bool type model.
+/// </summary>
+/// <param name="name">The name of the type model.</param>
+public class BoolTypeModel(string name) : BaseTypeModel(name) // decimal, float, double, etc
+{
+}
+
+/// <summary>
 /// Represents a date type model.
 /// </summary>
 /// <param name="name">The name of the type model.</param>
