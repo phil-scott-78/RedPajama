@@ -75,28 +75,15 @@ public class TypeModelBuilder<T>
                 return new ArrayTypeModel(elementType.Name + "Array", arrayType);
             }
 
-            if (type == typeof(string))
-            {
-                return new StringTypeModel(type.Name);
-            }
-
-            if (type == typeof(int) || type == typeof(long))
-                return new IntegerTypeModel(type.Name);
-
-            if (type == typeof(decimal) || type == typeof(float) || type == typeof(double))
-                return new DecimalTypeModel(type.Name);
-
-            if (type == typeof(DateTime) || type==typeof(DateTimeOffset))
-                return new DateTypeModel(type.Name);
-
-            if (type == typeof(bool))
-            {
-                return new BoolTypeModel(type.Name);
-            }
-
-            if (type.IsEnum)
-                return new EnumTypeModel(type.Name, Enum.GetNames(type));
-
+            // check basic types
+            if (type == typeof(string)) return new StringTypeModel(type.Name);
+            if (type == typeof(int) || type == typeof(long)) return new IntegerTypeModel(type.Name);
+            if (type == typeof(decimal) || type == typeof(float) || type == typeof(double)) return new DecimalTypeModel(type.Name);
+            if (type == typeof(DateTime) || type==typeof(DateTimeOffset)) return new DateTypeModel(type.Name);
+            if (type == typeof(Guid)) return new GuidTypeModel(type.Name);
+            if (type == typeof(bool)) return new BoolTypeModel(type.Name);
+            if (type.IsEnum) return new EnumTypeModel(type.Name, Enum.GetNames(type));
+            
             var properties = type.GetProperties()
                 .Where(p => p is { CanRead: true, GetMethod.IsPublic: true })
                 .Select(p =>

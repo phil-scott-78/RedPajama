@@ -77,6 +77,7 @@ public class JsonSampleGenerator
             StringTypeModel => AsTemplate($"\"string value of {propName}\""),
             IntegerTypeModel => AsTemplate($"integer value of {propName}"),
             DecimalTypeModel => AsTemplate($"decimal value of {propName}"),
+            GuidTypeModel => AsTemplate($"\"Guid value of {propName}\""),
             DateTypeModel => AsTemplate($"\"ISO 8601 format date value of {propName}\""),
             _ => throw new ArgumentException($"Unsupported type: {type.GetType().Name}")
         };
@@ -148,6 +149,7 @@ public class JsonSampleGenerator
             BoolTypeModel => AsTemplate($"{propName}_{index}"),
             DateTypeModel => AsTemplate($"\"{propName}_{index}\""),
             EnumTypeModel => AsTemplate($"\"{propName}_{index}\""),
+            GuidTypeModel => AsTemplate($"\"{propName}_{index}\""),
             _ => $"{propName}_{index}"
         };
     }

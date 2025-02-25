@@ -83,6 +83,7 @@ public class GbnfGenerator
             DecimalTypeModel => GenerateDecimalRule(),
             DateTypeModel => GenerateDateRule(),
             BoolTypeModel => GenerateBoolRule(),
+            GuidTypeModel => GenerateGuidRule(),
             ArrayTypeModel arrayType => GenerateArrayRule(arrayType, ruleName),
             TypeModel complexType => GenerateComplexTypeRule(complexType, ruleName),
             EnumTypeModel enumType => GenerateEnumRule(enumType),
@@ -137,6 +138,13 @@ public class GbnfGenerator
     private string GenerateDecimalRule()
     {
         return """("-"? ([0] | [1-9] [0-9]{0,15}) ("." [0-9]{1,15})?) space""";
+    }
+    
+    private string GenerateGuidRule()
+    {
+        return """
+               "\"" [0-9a-fA-F]{8} "-" [0-9a-fA-F]{4} "-" [0-9a-fA-F]{4} "-" [0-9a-fA-F]{4} "-" [0-9a-fA-F]{12} "\"" space
+               """;
     }
     
     private string GenerateDateRule()
