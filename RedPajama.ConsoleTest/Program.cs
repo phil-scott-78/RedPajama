@@ -14,14 +14,19 @@ Console.OutputEncoding = Encoding.UTF8;
 NativeLibraryConfig.All.WithCuda();
 NativeLogConfig.llama_log_set((a, b) =>
 {
-    Debug.WriteLine($"[{a}]: {b}");
+    if (a is LLamaLogLevel.Info or LLamaLogLevel.Debug or LLamaLogLevel.None or LLamaLogLevel.Continue)
+    {
+        return;
+    }
+
+    // Debug.WriteLine($"[{a}] - {b.Trim()} ");
 });
 
 AnsiConsole.WriteLine();
 
 var path = args.Length == 1
     ? args[0]
-    : AnsiConsole.Prompt(new TextPrompt<string>("Path to GGUF model file or folder containing multiple: "));
+    : AnsiConsole.Prompt(new TextPrompt<string>("Path to GGUF model file or folder containing multiple models: "));
 
 List<string> models = [];
 
@@ -37,19 +42,27 @@ else if (Path.Exists(path))
 else
 {
     var directory = Path.GetDirectoryName(path) ?? "";
-    var pattern = Path.GetFileName(path) ?? "*"; // Default to "*" if no pattern
+    var pattern = Path.GetFileName(path);
 
     var matcher = new Matcher();
     matcher.AddInclude(pattern);
     var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(directory)));
 
     models.AddRange(result.Files.Select(i => Path.Combine(directory, i.Path)));
-
 }
+
+// let's shuffle them up
+models = models
+    .Select(x => (x, Random.Shared.Next()))
+    .OrderBy(tuple => tuple.Item2)
+    .Select(tuple => tuple.Item1)
+    .ToList();
 
 var tests = new List<ITestRoutine>()
 {
+    new BatchedOperation(),
     new ParseComplexRestaurantOrder(),
+    new ParseEmailAndExtractGuid(),
     new ParseNameAndEmail(),
     new ParseOrderStatus(),
     new ParseNestedAddress(),
@@ -58,17 +71,19 @@ var tests = new List<ITestRoutine>()
     new ParseAndInferColor()
 };
 
+
 foreach (var modelFile in models)
 {
     var parameters = new ModelParams(modelFile)
     {
-        ContextSize = 4000,
+        ContextSize = 2000,
         GpuLayerCount = -1,
-        // BatchSize = 2048,
     };
 
     AnsiConsole.MarkupLineInterpolated($"[blue]{Path.GetFileNameWithoutExtension(modelFile)}[/]");
     using var model = await LLamaWeights.LoadFromFileAsync(parameters);
+    // let's mix it up on the spinner for thinking models
+    var spinner = model.IsThinkingModel() ? Spinner.Known.Dots8Bit : Spinner.Known.Dots2;
 
     foreach (var r in tests)
     {
@@ -77,28 +92,28 @@ foreach (var modelFile in models)
         try
         {
             AnsiConsole.MarkupInterpolated($"  {r.GetType().Name}: ");
-            var spinner = model.IsThinkingModel() ? Spinner.Known.Dots8Bit : Spinner.Known.Dots2;
             await r.Run(model, parameters).Spinner(spinner);
             AnsiConsole.MarkupLine($"[green]Ok[/] [grey]{stopWatch.ElapsedMilliseconds}ms[/]");
         }
+        catch (NotEqualException e)
+        {
+            AnsiConsole.MarkupLine(
+                $"[red]Failed testing {e.Caller.EscapeMarkup()}[/] [grey]{stopWatch.ElapsedMilliseconds}ms[/]");
+            AnsiConsole.Write(new Panel(SpectreHelpers.CreateExceptionRows(e)).Padding(4, 0, 0, 0).NoBorder());
+        }
         catch (BunchOfNotEqualException e)
         {
-            var msg = string.Join(Environment.NewLine,
-                e.Exception.Select(i =>
-                    $"   * [blue]{i.Caller.EscapeMarkup()}[/] expected to be {i.Expected.EscapeMarkup()}, received {i.Actual.EscapeMarkup()}"));
-            // don't use MarkupInterpolated here because we are using {msg} which contains markup in it, which under the interpolated version
-            // would be escaped.
             AnsiConsole.MarkupLine(
-                $"[red]Failed testing {e.Caller.EscapeMarkup()}[/] [grey]{stopWatch.ElapsedMilliseconds}ms[/]{Environment.NewLine}{msg}");
+                $"[red]Failed testing {e.Caller.EscapeMarkup()}[/] [grey]{stopWatch.ElapsedMilliseconds}ms[/]");
+            AnsiConsole.Write(new Panel(SpectreHelpers.CreateExceptionRows(e)).Padding(4, 0, 0, 0).NoBorder());
         }
         catch (Exception e)
         {
             AnsiConsole.MarkupLineInterpolated(
                 $"[red]Failed {e.Message}[/] [grey]{stopWatch.ElapsedMilliseconds}ms[/]");
+            Debug.WriteLine(e.ToString());
         }
     }
 
     AnsiConsole.WriteLine();
 }
-
-return 0;

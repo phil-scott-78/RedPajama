@@ -111,8 +111,8 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                               "Texts": ["⟨string value of String_1⟩", "⟨String_2⟩", "⟨String_N⟩"],
-                               "Numbers": [⟨integer value of Int32_1⟩, ⟨Int32_2⟩, ⟨Int32_N⟩]
+                               "Texts": ["⟨string value of Texts_1⟩", "⟨Texts_2⟩", "⟨Texts_N⟩"],
+                               "Numbers": [⟨integer value of Numbers_1⟩, ⟨Numbers_2⟩, ⟨Numbers_N⟩]
                            }
                            """;
         json.ShouldContainWithoutWhitespace(expectedJson);
@@ -169,7 +169,7 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                               "Category": "⟨A|B|C⟩" // Allowed values: A or B or C
+                               "Category": "⟨A|B|C⟩"
                            }
                            """;
         json.ShouldContainWithoutWhitespace(expectedJson);
@@ -210,9 +210,10 @@ public class JsonSampleGeneratorTests
         var expectedJson = """
                            {
                                "Items": [{
-                               "Name": "⟨string value of Name⟩",
-                               "Price": ⟨decimal value of Price⟩
-                           }, Item_2, Item_N]
+                                   "Name": "⟨string value of Name⟩",
+                                   "Price": ⟨decimal value of Price⟩
+                               }, Items_2, Items_N]
+                           }
                            """;
         json.ShouldContainWithoutWhitespace(expectedJson);
     }

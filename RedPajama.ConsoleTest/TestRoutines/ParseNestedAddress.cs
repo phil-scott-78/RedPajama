@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using JetBrains.Annotations;
 using LLama;
 using LLama.Abstractions;
 
@@ -7,8 +6,6 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseNestedAddress : ITestRoutine
 {
-
-    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
     private class Customer 
     {
         public required string Name { get; init; }
@@ -16,8 +13,8 @@ internal class ParseNestedAddress : ITestRoutine
         public required Address BillingAddress { get; init; }
     }
     
-    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
-    private class Address
+            
+    public class Address
     {
         public required string Street { get; init; }
         public required string City { get; init; }
@@ -25,10 +22,12 @@ internal class ParseNestedAddress : ITestRoutine
         [Description("Digits only")]
         public required string ZipCode { get; init; }
     }
+    
+
    
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters){ApplyTemplate = true};
+        var executor = new StatelessExecutor(model, parameters);
         const string prompt = """
                               Extract the customer name and addresses from this order:
                               ```
@@ -50,12 +49,16 @@ internal class ParseNestedAddress : ITestRoutine
 
         customer.ShouldAllBe([
             c => c.Name.ShouldBe("John Smith"),
-            c => c.ShippingAddress.Street.ShouldBe("123 Main St"),
-            c => c.ShippingAddress.City.ShouldBe("Boston"),
-            c => c.ShippingAddress.ZipCode.ShouldBe("02108"),
-            c => c.BillingAddress.Street.ShouldBe("456 Park Ave"),
-            c => c.BillingAddress.City.ShouldBe("New York"), 
-            c => c.BillingAddress.ZipCode.ShouldBe("10022")
+            c => c.ShippingAddress.ShouldAllBe([
+                address => address.Street.ShouldBe("123 Main St"),
+                address => address.City.ShouldBe("Boston"),
+                address => address.ZipCode.ShouldBe("02108"),
+            ]),
+            c => c.BillingAddress.ShouldAllBe([
+                address => address.Street.ShouldBe("456 Park Ave"),
+                address => address.City.ShouldBe("New York"),
+                address => address.ZipCode.ShouldBe("10022"),
+            ])
         ]);
     }
 }

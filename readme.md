@@ -126,8 +126,8 @@ var jsonSampleGenerator = new JsonSampleGenerator(settings);
 
 - `DefaultMinLength`: Minimum length for string values (default: 1)
 - `DefaultMaxLength`: Maximum length for string values (default: 512)
-- `OpeningDelimiter`: Character used to open placeholder values
-- `ClosingDelimiter`: Character used to close placeholder values
+- `OpeningDelimiter`: Character used to open placeholder values (default: '⟨')
+- `ClosingDelimiter`: Character used to close placeholder values (default: '⟩')
 - `PrettyPrint`: Enable/disable formatted GBNF output
 - `Indent`: Indentation string for pretty printing
 
@@ -136,12 +136,12 @@ var jsonSampleGenerator = new JsonSampleGenerator(settings);
 ### Type Support
 
 RedPajama supports the following C# types:
-- Primitive types (string, int, long, decimal, float, double)
+- Primitive types (string, int, long, decimal, float, double, bool)
 - DateTime and DateTimeOffset
+- Guids
 - Arrays
 - Enums
 - Complex objects with nested properties
-- Nullable versions of supported types
 
 ### Validation Attributes
 

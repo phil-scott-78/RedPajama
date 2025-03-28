@@ -61,6 +61,18 @@ public class DateTypeModel(string name) : BaseTypeModel(name) // ISO 8601 dates
 }
 
 /// <summary>
+/// Represents a bool type model.
+/// </summary>
+/// <param name="name">The name of the type model.</param>
+public class BoolTypeModel(string name) : BaseTypeModel(name);
+
+/// <summary>
+/// Represents a Guid type model.
+/// </summary>
+/// <param name="name">The name of the type model.</param>
+public class GuidTypeModel(string name) : BaseTypeModel(name);
+
+/// <summary>
 /// Represents an array type model.
 /// </summary>
 /// <param name="name">The name of the type model.</param>

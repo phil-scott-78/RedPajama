@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using JetBrains.Annotations;
 using LLama;
 using LLama.Abstractions;
 
@@ -7,8 +6,16 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseOrderStatus : ITestRoutine
 {
-    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
-    private enum OrderStatus
+    private class Order
+    {
+        public required string OrderId { get; init; }
+        public required OrderStatus Status { get; init; }
+        [Description("Time in UTC")] public required DateTimeOffset LastUpdated { get; init; }
+        public required decimal Balance { get; init; }
+    }
+    
+            
+    public enum OrderStatus
     {
         Pending,
         Processing,
@@ -17,18 +24,9 @@ internal class ParseOrderStatus : ITestRoutine
         Cancelled
     }
 
-    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
-    private class Order
-    {
-        public required string OrderId { get; init; }
-        public required OrderStatus Status { get; init; }
-        [Description("Time in UTC")] public required DateTimeOffset LastUpdated { get; init; }
-        public required decimal Balance { get; init; }
-    }
-
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
+        var executor = new StatelessExecutor(model, parameters);
         const string prompt = """
                               Extract the order ID, status and last update time from this notification:
                               ```

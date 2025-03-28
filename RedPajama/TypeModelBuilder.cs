@@ -124,6 +124,14 @@ public class TypeModelBuilder<T>
 
             propertyType = new StringTypeModel(type.Name, allowedValues, minLength, maxLength);
         }
+        else if (type == typeof(bool))
+        {
+            propertyType = new BoolTypeModel(type.Name);
+        }
+        else if (type == typeof(Guid))
+        {
+            propertyType = new GuidTypeModel(type.Name);
+        }
         else if (type == typeof(int) || type == typeof(long))
         {
             propertyType = new IntegerTypeModel(type.Name);

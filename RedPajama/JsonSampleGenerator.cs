@@ -53,7 +53,7 @@ public class JsonSampleGenerator
     {
         return GenerateForType(model, 0);
     }
-    
+
     /// <summary>
     /// Sample instructions to use to nudge the LLM to output the JSON with template content replaced.
     /// </summary>
@@ -71,11 +71,13 @@ public class JsonSampleGenerator
         return type switch
         {
             TypeModel complexType => GenerateComplexType(complexType, indentLevel),
-            ArrayTypeModel arrayType => GenerateArray(arrayType),
+            ArrayTypeModel arrayType => GenerateArray(arrayType, propName, indentLevel),
             EnumTypeModel enumType => GenerateEnum(enumType),
+            BoolTypeModel => AsTemplate($"\"true or value value of {propName}\""),
             StringTypeModel => AsTemplate($"\"string value of {propName}\""),
             IntegerTypeModel => AsTemplate($"integer value of {propName}"),
             DecimalTypeModel => AsTemplate($"decimal value of {propName}"),
+            GuidTypeModel => AsTemplate($"\"Guid value of {propName}\""),
             DateTypeModel => AsTemplate($"\"ISO 8601 format date value of {propName}\""),
             _ => throw new ArgumentException($"Unsupported type: {type.GetType().Name}")
         };
@@ -86,7 +88,7 @@ public class JsonSampleGenerator
         var prettyPrint = _settings.PrettyPrint;
         var indent = _settings.Indent;
 
-        
+
         if (type.Properties.Length == 0)
             return "{}";
 
@@ -99,30 +101,30 @@ public class JsonSampleGenerator
             var valueStr = GenerateForProperty(prop, indentLevel + 1);
             var commentStr = GenerateComment(prop);
             var comma = index < type.Properties.Length - 1 ? "," : "";
-            
+
             return $"{innerIndent}\"{prop.Name}\": {valueStr}{comma}{commentStr}";
         });
 
         return $"{{{newLine}{string.Join(newLine, properties)}{newLine}{indent1}}}";
     }
 
-    private string GenerateArray(ArrayTypeModel type)
+    private string GenerateArray(ArrayTypeModel type, string propName, int indentLevel)
     {
         // Generate first element with _1 suffix if it's a string with allowed values
-        var firstElement = GenerateArrayElement(type.ArrayType, 1);
-        
+        var firstElement = GenerateArrayElement(type.ArrayType, 1, propName, indentLevel);
+
         // Generate second element with _2 placeholder
-        var secondElement = GenerateArrayPlaceholder(type.ArrayType, 2);
-        
+        var secondElement = GenerateArrayPlaceholder(type.ArrayType, "2", propName);
+
         // Generate N placeholder for additional elements
-        var nElement = GenerateArrayPlaceholder(type.ArrayType, "N");
+        var nElement = GenerateArrayPlaceholder(type.ArrayType, "N", propName);
 
         return $"[{firstElement}, {secondElement}, {nElement}]";
     }
 
-    private string GenerateArrayElement(BaseTypeModel type, int index)
+    private string GenerateArrayElement(BaseTypeModel type, int index, string propName, int indentLevel)
     {
-        var value = GenerateForType(type, 0);
+        var value = GenerateForType(type, indentLevel, propName);
         if (value.StartsWith("\"" + _settings.OpeningDelimiter) && value.EndsWith(_settings.ClosingDelimiter + "\""))
         {
             // For string types with allowed values, add the index suffix
@@ -134,19 +136,22 @@ public class JsonSampleGenerator
             // For string types with allowed values, add the index suffix
             return value.Insert(value.Length - 1, $"_{index}");
         }
+
         return value;
     }
 
-    private string GenerateArrayPlaceholder(BaseTypeModel type, object index)
+    private string GenerateArrayPlaceholder(BaseTypeModel type, string index, string propName)
     {
         return type switch
         {
-            StringTypeModel => AsTemplate($"\"{type.Name}_{index}\""),
-            IntegerTypeModel => AsTemplate($"{type.Name}_{index}"),
-            DecimalTypeModel => AsTemplate($"{type.Name}_{index}"),
-            DateTypeModel => AsTemplate($"\"{type.Name}_{index}\""),
-            EnumTypeModel => AsTemplate($"\"{type.Name}_{index}\""),
-            _ => $"{type.Name}_{index}"
+            StringTypeModel => AsTemplate($"\"{propName}_{index}\""),
+            IntegerTypeModel => AsTemplate($"{propName}_{index}"),
+            DecimalTypeModel => AsTemplate($"{propName}_{index}"),
+            BoolTypeModel => AsTemplate($"{propName}_{index}"),
+            DateTypeModel => AsTemplate($"\"{propName}_{index}\""),
+            EnumTypeModel => AsTemplate($"\"{propName}_{index}\""),
+            GuidTypeModel => AsTemplate($"\"{propName}_{index}\""),
+            _ => $"{propName}_{index}"
         };
     }
 
@@ -162,7 +167,7 @@ public class JsonSampleGenerator
         {
             return GenerateForType(prop.PropertyType, indentLevel, prop.Name);
         }
-        
+
         // If we have allowed values, generate them as an enum-style list
         var values = string.Join("|", stringTypeModel.AllowedValues);
         return AsTemplate($"\"{values}\"");
@@ -171,30 +176,14 @@ public class JsonSampleGenerator
     private string GenerateComment(PropertyModel propertyModel)
     {
         var description = propertyModel.Description;
-        string[]? allowedValues = null;
-        if (propertyModel.PropertyType is StringTypeModel stringTypeModel)
-        {
-            allowedValues = stringTypeModel.AllowedValues;
-        }
-        
-        if (string.IsNullOrWhiteSpace(description) && (allowedValues == null || allowedValues.Length == 0))
+        if (string.IsNullOrWhiteSpace(description))
             return "";
 
-        var comments = new List<string>();
-        
-        if (!string.IsNullOrWhiteSpace(description))
-            comments.Add(description);
 
-        if (allowedValues is { Length: > 0 })
-        {
-            var values = string.Join(" or ", allowedValues);
-            comments.Add($"Allowed values: {values}");
-        }
-            
-        return _settings.PrettyPrint ? $" // {string.Join(". ", comments)}" : "";
+        return $" // {description}";
     }
 
-    
+
     private string AsTemplate(string input) => input.StartsWith('\"') || input.EndsWith('\"')
         ? $"\"{_settings.OpeningDelimiter}{input.Substring(1, input.Length - 2)}{_settings.ClosingDelimiter}\""
         : $"{_settings.OpeningDelimiter}{input}{_settings.ClosingDelimiter}";

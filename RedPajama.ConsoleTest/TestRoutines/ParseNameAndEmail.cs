@@ -1,4 +1,3 @@
-using JetBrains.Annotations;
 using LLama;
 using LLama.Abstractions;
 
@@ -6,7 +5,6 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseNameAndEmail : ITestRoutine
 {
-    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     private class Person
     {
         public required string FirstName { get; init; }

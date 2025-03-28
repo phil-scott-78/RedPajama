@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using JetBrains.Annotations;
 using LLama;
 using LLama.Abstractions;
 
@@ -8,8 +7,28 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseComplexRestaurantOrder : ITestRoutine
 {
-    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
-    enum OrderStatus 
+    class Order
+    {
+        [Description("The the order identifier, in the format XYZ123.")]
+        public required string OrderId { get; init; }
+
+        public required DateTime OrderTime { get; init; }
+        public required OrderStatus Status { get; init; }
+        public required string CustomerName { get; init; }
+
+        [Description("Should be in the format (XXX) XXX-XXXX")]
+        public required string PhoneNumber { get; init; }
+
+        public required Address DeliveryAddress { get; init; }
+        public required MenuItem[] Items { get; init; }
+        public required decimal TotalAmount { get; init; }
+
+        [AllowedValues("cash", "credit", "debit")]
+        public required string PaymentMethod { get; init; }
+    }
+    
+    
+    public enum OrderStatus
     {
         New,
         Preparing,
@@ -18,8 +37,7 @@ internal class ParseComplexRestaurantOrder : ITestRoutine
         Cancelled
     }
 
-    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
-    enum SpiceLevel
+    public enum SpiceLevel
     {
         Mild,
         Medium,
@@ -27,19 +45,17 @@ internal class ParseComplexRestaurantOrder : ITestRoutine
         ExtraSpicy
     }
 
-    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
-    class Address
+    public class Address
     {
         [Description("The full delivery address Line, made up of the primary address number, predirectional, street name, suffix, postdirectional, secondary address identifier, and secondary address.")]
-        public required string FullStreetAddress  { get; init; }
+        public required string FullStreetAddress { get; init; }
         public required string City { get; init; }
-        [AllowedValues("CA", "NY", "TX")]
+        [AllowedValues("CA", "NY", "TX")] 
         public required string State { get; init; }
         public required string ZipCode { get; init; }
     }
 
-    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
-    class MenuItem
+    public class MenuItem
     {
         [Description("The line number of the order item in the request")]
         public required int LineNumber { get; init; }
@@ -55,28 +71,11 @@ internal class ParseComplexRestaurantOrder : ITestRoutine
         public required string[] DietaryRestrictions { get; init; }
     }
 
-    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
-    class Order
-    {
-        [Description("The the order identifier, in the format XYZ123.")]
-        public required string OrderId { get; init; }
-        public required DateTime OrderTime { get; init; }
-        public required OrderStatus Status { get; init; }
-        public required string CustomerName { get; init; }
-        [Description("Should be in the format (XXX) XXX-XXXX")]
-        public required string PhoneNumber { get; init; }
-        public required Address DeliveryAddress { get; init; }
-        public required MenuItem[] Items { get; init; }
-        public required decimal TotalAmount { get; init; }
-        [AllowedValues("cash", "credit", "debit")]
-        public required string PaymentMethod { get; init; }
-    }
-    
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters){ApplyTemplate = true};
+        var executor = new StatelessExecutor(model, parameters);
         const string prompt = """
-                              Parse this restaurant order. 
+                              Parse this restaurant order.
                               
                               ```
                               Order #RTH789 - Placed at 2024-01-27 18:30:00
@@ -108,7 +107,7 @@ internal class ParseComplexRestaurantOrder : ITestRoutine
             (order, _) = (await executor.InferWithThoughtsAsync<Order>(prompt));
         }
 
-        
+
         order.ShouldAllBe([
             o => o.OrderId.ShouldBe("RTH789"),
             o => o.OrderTime.ShouldBe(new DateTime(2024, 1, 27, 18, 30, 0)),

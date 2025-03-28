@@ -1,12 +1,11 @@
-﻿using System.Buffers;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JetBrains.Annotations;
 using LLama;
 using LLama.Abstractions;
 using LLama.Common;
-using LLama.Native;
 using LLama.Sampling;
 
 namespace RedPajama.ConsoleTest;
@@ -30,7 +29,7 @@ public static class ExecutorExtensions
         ReadCommentHandling = JsonCommentHandling.Skip
     };
     
-    public static async Task<(T Result, string Thoughts)> InferWithThoughtsAsync<T>(this ILLamaExecutor executor, string prompt)
+    public static async Task<(T Result, string Thoughts)> InferWithThoughtsAsync<[MeansImplicitUse(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature, ImplicitUseTargetFlags.WithMembers)] T>(this ILLamaExecutor executor, string prompt)
     {
         var responseSb = new StringBuilder();
         var thoughtsSb = new StringBuilder();
@@ -51,12 +50,15 @@ public static class ExecutorExtensions
         return (o, thoughtsSb.ToString());
     }
     
-    public static async Task<T> InferAsync<T>(this ILLamaExecutor executor, string prompt)
+    public static async Task<T> InferAsync<[MeansImplicitUse(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature, ImplicitUseTargetFlags.WithMembers)] T>(this ILLamaExecutor executor, string prompt)
     {
         var sb = new StringBuilder();
         await foreach (var s in InferInternalAsync<T>(executor, prompt, false))
         {
-            sb.Append(s.Value);
+            if (s.responseType == ResultType.Response)
+            {
+                sb.Append(s.Value);    
+            }
         }
 
         var json = sb.ToString().Replace("```json", string.Empty).Replace("```", string.Empty);
@@ -65,19 +67,16 @@ public static class ExecutorExtensions
 
     private enum ResultType{Thinking, Response}
 
-    private static async IAsyncEnumerable<(string Value, ResultType responseType)> InferInternalAsync<T>(ILLamaExecutor executor,
-        string prompt, bool isThinkingModel)
+    private static async IAsyncEnumerable<(string Value, ResultType responseType)> InferInternalAsync<T>(
+        ILLamaExecutor executor,
+        string prompt, 
+        bool isThinkingModel)
     {
         var typeModelBuilder = new TypeModelBuilder<T>().Build();
         var gbnfGenerator = new GbnfGenerator();
-        var larkGenerator = new LlGuidanceGenerator();
         var jsonSampleGenerator = new JsonSampleGenerator();
         
         var gbnf = gbnfGenerator.Generate(typeModelBuilder);
-        /*
-        lark support is in common, but not the base llama.cpp so no go
-        var lark = larkGenerator.Generate(typeModelBuilder);
-        */ 
         var jsonSample = jsonSampleGenerator.Generate(typeModelBuilder);
         var sampleInstructions = jsonSampleGenerator.SampleInstructions();
 
@@ -96,7 +95,7 @@ public static class ExecutorExtensions
             var grammar = new Grammar(gbnfWithThinking, "root-with-thinking");
             inferenceParams = new InferenceParams
             {
-                SamplingPipeline = new DefaultSamplingPipeline {Grammar = grammar, Seed = 1229, Temperature = 0.7f, TopK = 40}
+                SamplingPipeline = new DefaultSamplingPipeline {Grammar = grammar, Seed = 1229, Temperature = 0.7f, GrammarOptimization = DefaultSamplingPipeline.GrammarOptimizationMode.Extended}
                 
             };
         }
@@ -105,7 +104,7 @@ public static class ExecutorExtensions
             var grammar = new Grammar(gbnf, "root");
             inferenceParams = new InferenceParams
             {
-                SamplingPipeline = new DefaultSamplingPipeline {Grammar = grammar, Seed = 1229, Temperature = 0.7f, TopK = 40}
+                SamplingPipeline = new DefaultSamplingPipeline {Grammar = grammar, Seed = 1229, RepeatPenalty = 1.1f,FrequencyPenalty = 0, Temperature = 0.1f, TopP = 0.9f, GrammarOptimization = DefaultSamplingPipeline.GrammarOptimizationMode.Extended}
             };
 
         }
@@ -119,7 +118,10 @@ public static class ExecutorExtensions
 
                                 {sampleInstructions}
                                 """;
+        
+        
 
+        
         var isThinking = false;
         await foreach (var s in executor.InferAsync(promptWithSample, inferenceParams))
         {
@@ -137,7 +139,6 @@ public static class ExecutorExtensions
             var value = s.Replace("<think>", string.Empty).Replace("</think>", string.Empty);
             if (string.IsNullOrEmpty(value) == false)
             {
-                Debug.Write(value);
                 yield return (value, resultType);
             }
         }
