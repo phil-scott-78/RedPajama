@@ -131,8 +131,8 @@ public class GbnfGeneratorTests
     {
         // Arrange
         var builder = new TypeModelBuilder<RestrictedType>();
-        builder.WithAllowedValues(x => x.Category, ["A", "B", "C"]);
         var typeModel = builder.Build();
+        typeModel = typeModel.WithAllowedValues<RestrictedType, string>(x => x.Category, ["A", "B", "C"]);
 
         // Act
         var grammar = _generator.Generate(typeModel);

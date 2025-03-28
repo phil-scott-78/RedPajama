@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Linq.Expressions;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace RedPajama;
@@ -16,39 +16,7 @@ namespace RedPajama;
 /// <typeparam name="T">The type for which the model is being built.</typeparam>
 public class TypeModelBuilder<T>
 {
-    private readonly Dictionary<string, string> _descriptions = new();
-    private readonly Dictionary<string, string[]> _allowedValues = new();
     private readonly HashSet<Type> _visitedTypes = [];
-
-    /// <summary>
-    /// Adds a description to the specified property.
-    /// </summary>
-    /// <typeparam name="TProperty">The type of the property.</typeparam>
-    /// <param name="propertySelector">An expression that selects the property.</param>
-    /// <param name="description">The description to add.</param>
-    /// <returns>The current instance of <see cref="TypeModelBuilder{T}"/>.</returns>
-    public TypeModelBuilder<T> WithDescription<TProperty>(Expression<Func<T, TProperty>> propertySelector,
-        string description)
-    {
-        var propertyPath = GetPropertyPath(propertySelector);
-        _descriptions[propertyPath] = description;
-        return this;
-    }
-
-    /// <summary>
-    /// Adds allowed values to the specified property.
-    /// </summary>
-    /// <typeparam name="TProperty">The type of the property.</typeparam>
-    /// <param name="propertySelector">An expression that selects the property.</param>
-    /// <param name="allowedValues">The allowed values to add.</param>
-    /// <returns>The current instance of <see cref="TypeModelBuilder{T}"/>.</returns>
-    public TypeModelBuilder<T> WithAllowedValues<TProperty>(Expression<Func<T, TProperty>> propertySelector,
-        string[] allowedValues)
-    {
-        var propertyPath = GetPropertyPath(propertySelector);
-        _allowedValues[propertyPath] = allowedValues;
-        return this;
-    }
 
     /// <summary>
     /// Builds the type model for the specified type.
@@ -69,39 +37,16 @@ public class TypeModelBuilder<T>
         try
         {
             if (type.IsArray)
-            {
-                var elementType = type.GetElementType()!;
-                var arrayType = BuildTypeModel(elementType, propertyPath);
-                return new ArrayTypeModel(elementType.Name + "Array", arrayType);
-            }
+                return CreateArrayTypeModel(type, propertyPath);
 
-            if (type == typeof(string))
-            {
-                return new StringTypeModel(type.Name);
-            }
-
-            if (type == typeof(int) || type == typeof(long))
-                return new IntegerTypeModel(type.Name);
-
-            if (type == typeof(decimal) || type == typeof(float) || type == typeof(double))
-                return new DecimalTypeModel(type.Name);
-
-            if (type == typeof(DateTime) || type==typeof(DateTimeOffset))
-                return new DateTypeModel(type.Name);
+            if (TryCreatePrimitiveTypeModel(type, out var primitiveModel))
+                return primitiveModel;
 
             if (type.IsEnum)
                 return new EnumTypeModel(type.Name, Enum.GetNames(type));
 
-            var properties = type.GetProperties()
-                .Where(p => p is { CanRead: true, GetMethod.IsPublic: true })
-                .Select(p =>
-                {
-                    var currentPath = propertyPath == null ? p.Name : $"{propertyPath}.{p.Name}";
-                    return BuildPropertyModel(p, currentPath);
-                })
-                .ToArray();
-
-            return new TypeModel(type.Name, properties);
+            // Complex type with properties
+            return CreateComplexTypeModel(type, propertyPath);
         }
         finally
         {
@@ -109,41 +54,61 @@ public class TypeModelBuilder<T>
         }
     }
 
+    private ArrayTypeModel CreateArrayTypeModel(Type type, string? propertyPath)
+    {
+        var elementType = type.GetElementType()!;
+        var arrayType = BuildTypeModel(elementType, propertyPath);
+        return new ArrayTypeModel(elementType.Name + "Array", arrayType);
+    }
+
+    private static bool TryCreatePrimitiveTypeModel(Type type, [NotNullWhen(true)] out BaseTypeModel? model)
+    {
+        model = type switch
+        {
+            _ when type == typeof(string) => new StringTypeModel(type.Name),
+            _ when type == typeof(int) || type == typeof(long) => new IntegerTypeModel(type.Name),
+            _ when type == typeof(decimal) || type == typeof(float) || type == typeof(double) => new DecimalTypeModel(type.Name),
+            _ when type == typeof(DateTime) || type == typeof(DateTimeOffset) => new DateTypeModel(type.Name),
+            _ when type == typeof(bool) => new BoolTypeModel(type.Name),
+            _ when type == typeof(Guid) => new GuidTypeModel(type.Name),
+            _ => null
+        };
+
+        return model != null;
+    }
+
+    private TypeModel CreateComplexTypeModel(Type type, string? propertyPath)
+    {
+        var properties = type.GetProperties()
+            .Where(p => p is { CanRead: true, GetMethod.IsPublic: true })
+            .Select(p =>
+            {
+                var currentPath = propertyPath == null ? p.Name : $"{propertyPath}.{p.Name}";
+                return BuildPropertyModel(p, currentPath);
+            })
+            .ToArray();
+
+        return new TypeModel(type.Name, properties);
+    }
+
     private PropertyModel BuildPropertyModel(PropertyInfo propertyInfo, string propertyPath)
     {
-        var description = GetDescription(propertyInfo, propertyPath);
-        BaseTypeModel propertyType;
-
+        var description = GetDescription(propertyInfo);
         var type = propertyInfo.PropertyType;
-
+        
+        BaseTypeModel propertyType;
+        
         if (type == typeof(string))
         {
-            var allowedValues = GetAllowedValues(propertyInfo, propertyPath);
+            var allowedValues = GetAllowedValues(propertyInfo);
             var minLength = GetMinLength(propertyInfo);
             var maxLength = GetMaxLength(propertyInfo);
 
             propertyType = new StringTypeModel(type.Name, allowedValues, minLength, maxLength);
         }
-        else if (type == typeof(bool))
+        else if (TryCreatePrimitiveTypeModel(type, out var primitiveModel))
         {
-            propertyType = new BoolTypeModel(type.Name);
-        }
-        else if (type == typeof(Guid))
-        {
-            propertyType = new GuidTypeModel(type.Name);
-        }
-        else if (type == typeof(int) || type == typeof(long))
-        {
-            propertyType = new IntegerTypeModel(type.Name);
-        }
-        else if (type == typeof(decimal) || type == typeof(float) ||
-                 type == typeof(double))
-        {
-            propertyType = new DecimalTypeModel(type.Name);
-        }
-        else if (type == typeof(DateTime))
-        {
-            propertyType = new DateTypeModel(type.Name);
+            propertyType = primitiveModel;
         }
         else
         {
@@ -157,50 +122,14 @@ public class TypeModelBuilder<T>
         );
     }
 
-    private int? GetMinLength(PropertyInfo propertyInfo)
-    {
-        var minLengthAttribute = propertyInfo.GetCustomAttribute<MinLengthAttribute>();
-        return minLengthAttribute?.Length;
-    }
+    private static int? GetMinLength(PropertyInfo propertyInfo) => propertyInfo.GetCustomAttribute<MinLengthAttribute>()?.Length;
 
-    private int? GetMaxLength(PropertyInfo propertyInfo)
-    {
-        var minLengthAttribute = propertyInfo.GetCustomAttribute<MaxLengthAttribute>();
-        return minLengthAttribute?.Length;
-    }
+    private static int? GetMaxLength(PropertyInfo propertyInfo) => propertyInfo.GetCustomAttribute<MaxLengthAttribute>()?.Length;
 
-    private string? GetDescription(PropertyInfo propertyInfo, string propertyPath)
-    {
-        if (_descriptions.TryGetValue(propertyPath, out var configuredDescription))
-            return configuredDescription;
-
-        var descriptionAttribute = propertyInfo.GetCustomAttribute<DescriptionAttribute>();
-        return descriptionAttribute?.Description;
-    }
-
-    private string[]? GetAllowedValues(PropertyInfo propertyInfo, string propertyPath)
-    {
-        if (_allowedValues.TryGetValue(propertyPath, out var configuredValues))
-            return configuredValues;
-
-        var allowedValuesAttribute = propertyInfo.GetCustomAttribute<AllowedValuesAttribute>();
-        return allowedValuesAttribute?.Values.Select(i => i?.ToString() ?? string.Empty).ToArray();
-    }
-
-    private static string GetPropertyPath<TProperty>(Expression<Func<T, TProperty>> propertySelector)
-    {
-        if (propertySelector.Body is not MemberExpression memberExpression)
-            throw new ArgumentException("Invalid property expression", nameof(propertySelector));
-
-        var parts = new List<string>();
-        var expression = memberExpression;
-        while (expression != null)
-        {
-            parts.Add(expression.Member.Name);
-            expression = expression.Expression as MemberExpression;
-        }
-
-        parts.Reverse();
-        return string.Join(".", parts);
-    }
+    private static string? GetDescription(PropertyInfo propertyInfo) => propertyInfo.GetCustomAttribute<DescriptionAttribute>()?.Description;
+    
+    private static string[]? GetAllowedValues(PropertyInfo propertyInfo) => propertyInfo
+        .GetCustomAttribute<AllowedValuesAttribute>()?.Values
+        .Select(i => i?.ToString() ?? string.Empty)
+        .ToArray();
 }

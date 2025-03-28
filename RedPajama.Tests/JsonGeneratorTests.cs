@@ -141,8 +141,8 @@ public class JsonSampleGeneratorTests
     {
         // Arrange
         var builder = new TypeModelBuilder<DescribedType>();
-        builder.WithDescription(x => x.Name, "User's full name");
         var typeModel = builder.Build();
+        typeModel = typeModel.WithDescription<DescribedType, string>(x => x.Name, "User's full name");
 
         // Act
         var json = _generator.Generate(typeModel);
@@ -160,8 +160,9 @@ public class JsonSampleGeneratorTests
     public void Generate_WithAllowedValues_CreatesCorrectJson()
     {
         // Arrange
-        var builder = new TypeModelBuilder<RestrictedType>().WithAllowedValues(x => x.Category, ["A", "B", "C"]);
+        var builder = new TypeModelBuilder<RestrictedType>();
         var typeModel = builder.Build();
+        typeModel = typeModel.WithAllowedValues<RestrictedType, string>(x => x.Category, ["A", "B", "C"]);
 
         // Act
         var json = _generator.Generate(typeModel);

@@ -146,10 +146,10 @@ public class TypeModelBuilderTests
     {
         // Arrange
         var builder = new TypeModelBuilder<DescriptionTestClass>();
-        builder.WithDescription(x => x.PropWithDesc, "Custom description");
-
+        
         // Act
         var model = builder.Build();
+        model = model.WithDescription<DescriptionTestClass, string>(x => x.PropWithDesc, "Custom description");
 
         // Assert
         var prop = model.Properties.Single();
@@ -175,10 +175,11 @@ public class TypeModelBuilderTests
     {
         // Arrange
         var builder = new TypeModelBuilder<AllowedValuesTestClass>();
-        builder.WithAllowedValues(x => x.RestrictedProp, new[] { "value1", "value2" });
-
+        
         // Act
         var model = builder.Build();
+        model = model.WithAllowedValues<AllowedValuesTestClass, string>(x => x.RestrictedProp,
+            new[] { "value1", "value2" });
 
         // Assert
         var prop = (StringTypeModel) model.Properties.Single().PropertyType;
@@ -249,10 +250,10 @@ public class TypeModelBuilderTests
     {
         // Arrange
         var builder = new TypeModelBuilder<AttributeDescriptionTestClass>();
-        builder.WithDescription(x => x.PropWithDesc, "Custom description");
 
         // Act
         var model = builder.Build();
+        model = model.WithDescription<AttributeDescriptionTestClass, string>(x => x.PropWithDesc, "Custom description");
 
         // Assert
         var prop = model.Properties.Single();
