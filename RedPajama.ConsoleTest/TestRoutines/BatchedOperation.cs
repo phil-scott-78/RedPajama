@@ -8,12 +8,12 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 public class BatchedOperation : ITestRoutine
 {
-    private enum Confidence
+    public enum Confidence
     {
         Low, Medium, High
     }
 
-    private class Answer
+    public class Answer
     {
         public required bool Value { get; init; }
         public required Confidence Confidence { get; init; }
@@ -28,7 +28,7 @@ public class BatchedOperation : ITestRoutine
 
         var prompts = data.Select(i => new KeyValuePair<int, string>(i.Index, GetPrompt(i.Question, i.Passage))).ToArray();
         ConcurrentDictionary<int, (bool IsCorrect, Confidence Confidence)> results = new();
-        await foreach (var s in batchedExecutor.ExecuteAsync<int, Answer>(prompts))
+        await foreach (var s in batchedExecutor.ExecuteAsync<int, Answer>(prompts, JsonContext.Default, TypeModelContext.Default))
         {
             var correctResult = data.First(i => i.Index == s.Key).Answer == s.Value.Value;
             results.AddOrUpdate(s.Key, (correctResult, s.Value.Confidence), (_, v) => v);

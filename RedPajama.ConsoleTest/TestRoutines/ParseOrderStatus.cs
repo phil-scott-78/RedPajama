@@ -37,11 +37,11 @@ internal class ParseOrderStatus : ITestRoutine
         Order order;
         if (!model.IsThinkingModel())
         {
-            order = await executor.InferAsync<Order>(prompt, new TypeModelContext());
+            order = await executor.InferAsync<Order>(prompt, JsonContext.Default, TypeModelContext.Default);
         }
         else
         {
-            (order, _) = (await executor.InferWithThoughtsAsync<Order>(prompt));
+            (order, _) = (await executor.InferWithThoughtsAsync<Order>(prompt, JsonContext.Default, TypeModelContext.Default));
         }
 
         order.ShouldAllBe([

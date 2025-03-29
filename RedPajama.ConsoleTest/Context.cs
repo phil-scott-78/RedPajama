@@ -1,4 +1,5 @@
-﻿using RedPajama.ConsoleTest.TestRoutines;
+﻿using System.Text.Json.Serialization;
+using RedPajama.ConsoleTest.TestRoutines;
 
 namespace RedPajama.ConsoleTest;
 
@@ -12,16 +13,26 @@ namespace RedPajama.ConsoleTest;
 [PajamaTypeModel(typeof(ParseNestedAddress.Customer))]
 [PajamaTypeModel(typeof(ParseOrderStatus.Order), "ParseOrderStatusOrder")]
 [PajamaTypeModel(typeof(ParseTags.BlogPost))]
+[PajamaTypeModel(typeof(BatchedOperation.Answer))]
 internal partial class TypeModelContext : PajamaTypeModelContext
 {
     
 }
 
 
-
-[PajamaTypeModel(typeof(ParseComplexRestaurantOrder.Order), "TheOrder2")]
-[PajamaTypeModel(typeof(ParseOrderStatus.Order), "TheOrder")]
-internal partial class TypeModelContext2 : PajamaTypeModelContext
+[JsonSerializable(typeof(ParseAndInferColor.ColorDescription))]
+[JsonSerializable(typeof(ParseBookCollection.Library))]
+[JsonSerializable(typeof(ParseComplexRestaurantOrder.Order))]
+[JsonSerializable(typeof(ParseEmailAndExtractGuid.UserRecord))]
+[JsonSerializable(typeof(ParseNameAndEmail.Person))]
+[JsonSerializable(typeof(ParseNestedAddress.Customer), TypeInfoPropertyName = "NestedAddressCustomer")]
+[JsonSerializable(typeof(ParseNestedAddress.Address), TypeInfoPropertyName = "NestedAddressAddress")]
+[JsonSerializable(typeof(ParseOrderStatus.Order), TypeInfoPropertyName = "ParseOrderStatusOrder")]
+[JsonSerializable(typeof(ParseOrderStatus.OrderStatus), TypeInfoPropertyName = "ParseOrderStatusOrderStatus")]
+[JsonSerializable(typeof(ParseTags.BlogPost))]
+[JsonSerializable(typeof(BatchedOperation.Answer))]
+[JsonSourceGenerationOptions(UseStringEnumConverter = true)]
+internal partial class JsonContext : JsonSerializerContext
 {
     
 }

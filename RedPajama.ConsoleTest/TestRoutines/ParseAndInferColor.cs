@@ -29,11 +29,11 @@ internal class ParseAndInferColor : ITestRoutine
         ColorDescription color;
         if (!model.IsThinkingModel())
         {
-            color = await executor.InferAsync<ColorDescription>(prompt, new TypeModelContext());
+            color = await executor.InferAsync<ColorDescription>(prompt, JsonContext.Default, TypeModelContext.Default);
         }
         else
         {
-            (color, _) = (await executor.InferWithThoughtsAsync<ColorDescription>(prompt));
+            (color, _) = (await executor.InferWithThoughtsAsync<ColorDescription>(prompt, JsonContext.Default, TypeModelContext.Default));
         }
 
         color.ShouldAllBe([

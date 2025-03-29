@@ -27,11 +27,11 @@ internal class ParseTags : ITestRoutine
         BlogPost post;
         if (!model.IsThinkingModel())
         {
-            post = await executor.InferAsync<BlogPost>(prompt, new TypeModelContext());
+            post = await executor.InferAsync<BlogPost>(prompt, JsonContext.Default, TypeModelContext.Default);
         }
         else
         {
-            (post, _) = await executor.InferWithThoughtsAsync<BlogPost>(prompt);
+            (post, _) = await executor.InferWithThoughtsAsync<BlogPost>(prompt, JsonContext.Default, TypeModelContext.Default);
         }
 
         post.ShouldAllBe([

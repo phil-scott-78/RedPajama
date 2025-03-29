@@ -123,7 +123,7 @@ namespace RedPajama.SourceGen
         {
             var sb = new StringBuilder();
 
-            sb.AppendLine($"        private static TypeModel Build{typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace(".", "").Replace(":", "")}Model()");
+            sb.AppendLine($"        private TypeModel Build{typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace(".", "").Replace(":", "")}Model()");
             sb.AppendLine("        {");
             sb.AppendLine($"            var properties = new List<PropertyModel>();");
 
@@ -156,7 +156,7 @@ namespace RedPajama.SourceGen
             var sb = new StringBuilder();
             var typeName = enumType.Name;
 
-            sb.AppendLine($"        private static EnumTypeModel Build{GetLongName(enumType)}EnumModel()");
+            sb.AppendLine($"        private EnumTypeModel Build{GetLongName(enumType)}EnumModel()");
             sb.AppendLine("        {");
 
             // Get enum values

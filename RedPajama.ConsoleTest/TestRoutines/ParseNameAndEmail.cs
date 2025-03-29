@@ -25,11 +25,11 @@ internal class ParseNameAndEmail : ITestRoutine
         Person person;
         if (!model.IsThinkingModel())
         {
-            person = await executor.InferAsync<Person>(prompt, new TypeModelContext());
+            person = await executor.InferAsync<Person>(prompt, JsonContext.Default, TypeModelContext.Default);
         }
         else
         {
-            (person, _) = (await executor.InferWithThoughtsAsync<Person>(prompt));
+            (person, _) = (await executor.InferWithThoughtsAsync<Person>(prompt, JsonContext.Default, TypeModelContext.Default));
         }
 
         person.ShouldAllBe([

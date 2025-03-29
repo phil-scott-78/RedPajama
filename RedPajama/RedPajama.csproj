@@ -13,6 +13,7 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/phil-scott-78/RedPajama</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <IsTrimmable>true</IsTrimmable>
     </PropertyGroup>
     <ItemGroup>
         <InternalsVisibleTo Include="$(AssemblyName).Tests" />

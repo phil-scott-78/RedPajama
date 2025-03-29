@@ -13,19 +13,14 @@ namespace RedPajama.ConsoleTest;
 
 public static class BatchedExecutorExtensions
 {
-    private static readonly JsonSerializerOptions JsonSerializerOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() },
-        ReadCommentHandling = JsonCommentHandling.Skip
-    };
-
     public static async IAsyncEnumerable<KeyValuePair<TKey, TValue>> ExecuteAsync<TKey, [MeansImplicitUse] TValue>(
-        this BatchedExecutor executor, IEnumerable<KeyValuePair<TKey, string>> prompts,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default) where TKey : notnull
+        this BatchedExecutor executor, 
+        IEnumerable<KeyValuePair<TKey, string>> prompts,
+        JsonSerializerContext jsonSerializerContext,
+        PajamaTypeModelContext pajamaTypeModelContext,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default) where TKey : notnull where TValue : class
     {
-        var typeModelBuilder = new TypeModelBuilder<TValue>().Build();
+        var typeModelBuilder = pajamaTypeModelContext.Get<TValue>();
         var gbnfGenerator = new GbnfGenerator();
         var jsonSampleGenerator = new JsonSampleGenerator();
 
@@ -38,7 +33,7 @@ public static class BatchedExecutorExtensions
             new KeyValuePair<TKey, string>(i.Key, executor.TemplatePrompt(i.Value, jsonSample, sampleInstructions))));
 
         // Dynamic management of max active conversations based on KV slot availability
-        var currentMaxActiveSize = 16; // Start with maximum of 16, but will reduce if we hit NoKvSlot errors
+        var currentMaxActiveSize = 64; // Start with maximum of 16, but will reduce if we hit NoKvSlot errors
         var activeConversations = ImmutableList.Create<ConversationData<TKey, TValue>>();
 
         while ((queue.Count > 0 || activeConversations.Any(data => !data.IsComplete)) &&
@@ -49,6 +44,7 @@ public static class BatchedExecutorExtensions
             {
                 for (var i = activeConversations.Count; i < currentMaxActiveSize; i++)
                 {
+                    if (queue.Count == 0) continue;
                     var (key, templatedPrompt) = queue.Dequeue();
 
                     var conversation = executor.Create();
@@ -59,6 +55,7 @@ public static class BatchedExecutorExtensions
                         Key = key,
                         Prompt = templatedPrompt,
                         Conversation = conversation,
+                        JsonContext = jsonSerializerContext,
                         Sampler = new DefaultSamplingPipeline
                         {
                             Grammar = new Grammar(gbnf, "root"),
@@ -170,7 +167,7 @@ public static class BatchedExecutorExtensions
                 """;
     }
 
-    internal class ConversationData<TKey, TValue> where TKey : notnull
+    internal class ConversationData<TKey, TValue> where TKey : notnull where TValue : class
     {
         public required TKey Key { get; init; }
         public required string Prompt { get; init; }
@@ -180,6 +177,7 @@ public static class BatchedExecutorExtensions
 
         public bool IsComplete { get; private set; }
         public int TokensSampled { get; private set; }
+        public required JsonSerializerContext JsonContext { get; init; }
 
         private readonly StringBuilder _stringBuilder = new();
 
@@ -198,7 +196,8 @@ public static class BatchedExecutorExtensions
         public TValue GetAnswer()
         {
             var json = _stringBuilder.ToString();
-            return JsonSerializer.Deserialize<TValue>(json, JsonSerializerOptions) ??
+            
+            return JsonSerializer.Deserialize(json, typeof(TValue), JsonContext) as TValue ??
                    throw new InvalidOperationException("Couldn't deserialize result");
         }
 

@@ -20,10 +20,12 @@ namespace RedPajama.SourceGen
     }
     
     internal record TypeModelContextData(
+        string Accessibility,
         string ClassName,
         string Namespace,
         List<TypeRegistration> ModelTypes)
     {
+        public string Accessibility { get; } = Accessibility;
         public string ClassName { get; } = ClassName;
         public string Namespace { get; } = Namespace;
         public List<TypeRegistration> ModelTypes { get; } = ModelTypes;

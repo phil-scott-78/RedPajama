@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
@@ -19,20 +21,17 @@ public static class LlamaWeightExtensions
 
 public static class ExecutorExtensions
 {
+    public static async Task<(T Result, string Thoughts)> InferWithThoughtsAsync<[MeansImplicitUse(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature, ImplicitUseTargetFlags.WithMembers)] T>(
+        this ILLamaExecutor executor, 
+        string prompt,
+        JsonSerializerContext jsonContext,
+        PajamaTypeModelContext? typeModelContext = null
+    ) where T : class
     
-    private static readonly JsonSerializerOptions JsonSerializerOptions = new()
-    {
-        PropertyNameCaseInsensitive = true, 
-        WriteIndented = true, 
-        Converters = { new JsonStringEnumConverter() }, 
-        ReadCommentHandling = JsonCommentHandling.Skip
-    };
-    
-    public static async Task<(T Result, string Thoughts)> InferWithThoughtsAsync<[MeansImplicitUse(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature, ImplicitUseTargetFlags.WithMembers)] T>(this ILLamaExecutor executor, string prompt)
     {
         var responseSb = new StringBuilder();
         var thoughtsSb = new StringBuilder();
-        await foreach (var s in InferInternalAsync<T>(executor, prompt, true))
+        await foreach (var s in InferInternalAsync<T>(executor, prompt, true, typeModelContext))
         {
             if (s.responseType == ResultType.Response)
             {
@@ -45,15 +44,17 @@ public static class ExecutorExtensions
         }
 
         var json = responseSb.ToString();
-        var o = JsonSerializer.Deserialize<T>(json, JsonSerializerOptions) ?? throw new InvalidOperationException("Couldn't deserialize result");
+        var o = JsonSerializer.Deserialize(json, typeof(T), jsonContext) as T ?? throw new InvalidOperationException("Couldn't deserialize result");
         return (o, thoughtsSb.ToString());
     }
     
     public static async Task<T> InferAsync<[MeansImplicitUse(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature, ImplicitUseTargetFlags.WithMembers)] T>(this ILLamaExecutor executor, string prompt,
-        PajamaTypeModelContext? typeModelContext = null)
+        JsonSerializerContext jsonContext,
+        PajamaTypeModelContext? typeModelContext = null
+        ) where T : class
     {
         var sb = new StringBuilder();
-        await foreach (var s in InferInternalAsync<T>(executor, prompt, false))
+        await foreach (var s in InferInternalAsync<T>(executor, prompt, false, typeModelContext))
         {
             if (s.responseType == ResultType.Response)
             {
@@ -62,7 +63,7 @@ public static class ExecutorExtensions
         }
 
         var json = sb.ToString();
-        return JsonSerializer.Deserialize<T>(json, JsonSerializerOptions) ?? throw new InvalidOperationException("Couldn't deserialize result");
+        return JsonSerializer.Deserialize(json, typeof(T), jsonContext) as T ?? throw new InvalidOperationException("Couldn't deserialize result");
     }
 
     private enum ResultType{Thinking, Response}
@@ -74,9 +75,7 @@ public static class ExecutorExtensions
         PajamaTypeModelContext? typeModelContext = null
         )
     {
-        var typeModelBuilder = typeModelContext == null 
-            ? new TypeModelBuilder<T>().Build() 
-            : TypeModelContext.Get<T>();
+        var typeModelBuilder = GetTypeModelBuilder<T>(typeModelContext);
         
         var gbnfGenerator = new GbnfGenerator();
         var jsonSampleGenerator = new JsonSampleGenerator();
@@ -148,4 +147,25 @@ public static class ExecutorExtensions
             }
         }
     }
+
+    private static TypeModel GetTypeModelBuilder<T>(PajamaTypeModelContext? typeModelContext)
+    {
+        if (typeModelContext == null && IsDynamicCodeSupported)
+        {
+            return new TypeModelBuilder<T>().Build();
+        }
+
+        if (typeModelContext != null)
+        {
+            return typeModelContext.Get<T>();
+        }
+
+        throw new Exception("TypeModelContext must be passed if running in AOT");
+
+    }
+
+#pragma warning disable IL4000
+    [FeatureGuard(typeof(RequiresUnreferencedCodeAttribute))]
+    private static bool IsDynamicCodeSupported => RuntimeFeature.IsDynamicCodeSupported;
+#pragma warning restore IL4000
 }

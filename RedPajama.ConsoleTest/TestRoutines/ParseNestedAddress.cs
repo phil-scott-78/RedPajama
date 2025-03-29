@@ -40,11 +40,11 @@ internal class ParseNestedAddress : ITestRoutine
         Customer customer;
         if (!model.IsThinkingModel())
         {
-            customer = await executor.InferAsync<Customer>(prompt, new TypeModelContext());
+            customer = await executor.InferAsync<Customer>(prompt,JsonContext.Default, TypeModelContext.Default);
         }
         else
         {
-            (customer, _) = (await executor.InferWithThoughtsAsync<Customer>(prompt));
+            (customer, _) = await executor.InferWithThoughtsAsync<Customer>(prompt, JsonContext.Default, TypeModelContext.Default);
         }
 
         customer.ShouldAllBe([

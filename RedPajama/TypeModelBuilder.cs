@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.Versioning;
 
 namespace RedPajama;
 
@@ -14,6 +15,7 @@ namespace RedPajama;
 /// This class uses reflection to build the type model which gets passed to the GNBf and JSON generator.
 /// </summary>
 /// <typeparam name="T">The type for which the model is being built.</typeparam>
+[RequiresUnreferencedCode("TypeModelBuilder requires reflection. Use the source generator instead.")]
 public class TypeModelBuilder<T>
 {
     private readonly HashSet<Type> _visitedTypes = [];

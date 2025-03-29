@@ -42,11 +42,11 @@ internal class ParseEmailAndExtractGuid : ITestRoutine
         UserRecord user;
         if (!model.IsThinkingModel())
         {
-            user = await executor.InferAsync<UserRecord>(prompt, new TypeModelContext());
+            user = await executor.InferAsync<UserRecord>(prompt, JsonContext.Default, TypeModelContext.Default);
         }
         else
         {
-            (user, _) = (await executor.InferWithThoughtsAsync<UserRecord>(prompt));
+            (user, _) = (await executor.InferWithThoughtsAsync<UserRecord>(prompt, JsonContext.Default, TypeModelContext.Default));
         }
 
         user.ShouldAllBe([

@@ -108,10 +108,22 @@ namespace RedPajama.SourceGen
                     Location = location
                 });
             }
+            
+            var accessibility = context.TargetSymbol.DeclaredAccessibility switch
+            {
+                Accessibility.Public => "public",
+                Accessibility.Private => "private",
+                Accessibility.Protected => "protected",
+                Accessibility.Internal => "internal",
+                Accessibility.ProtectedAndInternal => "private protected",
+                Accessibility.ProtectedOrInternal => "protected internal",
+                _ => string.Empty // For NotApplicable, Invalid, etc.
+            };
 
             // Get the semantic model and class symbol
             return context.TargetSymbol is INamedTypeSymbol classSymbol
                 ? new TypeModelContextData(
+                    accessibility,
                     classSymbol.Name,
                     classSymbol.ContainingNamespace.ToDisplayString(),
                     modelTypes)
@@ -325,7 +337,7 @@ namespace RedPajama.SourceGen
             }
 
             // Begin class declaration
-            source.AppendLine($"    internal partial class {data.ClassName} : PajamaTypeModelContext");
+            source.AppendLine($"    {data.Accessibility} partial class {data.ClassName} : PajamaTypeModelContext");
             source.AppendLine("    {");
 
             // Generate properties for each type model
@@ -338,8 +350,17 @@ namespace RedPajama.SourceGen
                 source.AppendLine($"        /// <summary>");
                 source.AppendLine($"        /// Gets the TypeModel for {typeName}");
                 source.AppendLine($"        /// </summary>");
-                source.AppendLine($"        public static TypeModel {propertyName} => {propertyName}Builder();");
+                source.AppendLine($"        public TypeModel {propertyName} => {propertyName}Builder();");
             }
+            
+            // Generate the Default property
+            source.AppendLine();
+            source.AppendLine("        /// <summary>");
+            source.AppendLine("        /// Gets the Default instance of the model context.");
+            source.AppendLine("        /// </summary>");
+            source.AppendLine($"        public static {data.ClassName} Default {{ get; }} = new {data.ClassName}();");
+            
+
 
             // Generate the Get<T>() method
             source.AppendLine();
@@ -348,9 +369,8 @@ namespace RedPajama.SourceGen
             source.AppendLine("        /// </summary>");
             source.AppendLine("        /// <typeparam name=\"T\">The type to get the model for.</typeparam>");
             source.AppendLine("        /// <returns>The TypeModel for the specified type.</returns>");
-            source.AppendLine(
-                "        /// <exception cref=\"ArgumentException\">Thrown when the type is not supported.</exception>");
-            source.AppendLine("        public static TypeModel Get<T>()");
+            source.AppendLine("        /// <exception cref=\"ArgumentException\">Thrown when the type is not supported.</exception>");
+            source.AppendLine("        public override TypeModel Get<T>()");
             source.AppendLine("        {");
 
             // Add conditions for each registered type
@@ -402,7 +422,7 @@ namespace RedPajama.SourceGen
             }
 
             // Begin class declaration
-            source.AppendLine($"    internal partial class {contextData.ClassName}");
+            source.AppendLine($"    {contextData.Accessibility} partial class {contextData.ClassName}");
             source.AppendLine("    {");
 
             var typeName = typeReg.FullType;
@@ -419,7 +439,7 @@ namespace RedPajama.SourceGen
             }
 
             // Generate the builder method
-            source.AppendLine($"        private static TypeModel {propertyName}Builder()");
+            source.AppendLine($"        private TypeModel {propertyName}Builder()");
             source.AppendLine("        {");
 
             // Add the primary type builder code
@@ -498,7 +518,7 @@ namespace RedPajama
     /// </summary>
     public abstract class PajamaTypeModelContext
     {
-        // Base class for generated context classes
+        public abstract TypeModel Get<T>();
     }
 }";
             context.AddSource("PajamaTypeModelAttribute.g.cs", SourceText.From(attributeSource, Encoding.UTF8));
