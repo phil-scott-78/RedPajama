@@ -3,7 +3,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 
-namespace RedPajama.SourceGen
+namespace RedPajama.SourceGenerator
 {
     /// <summary>
     /// Helper class to process a type and its dependencies

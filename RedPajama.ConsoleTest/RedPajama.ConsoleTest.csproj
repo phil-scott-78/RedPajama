@@ -10,7 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\RedPajama.SourceGen\RedPajama.SourceGen.csproj" OutputItemType="Analyzer" />
+      <ProjectReference Include="..\RedPajama.SourceGenerator\RedPajama.SourceGenerator.csproj" OutputItemType="Analyzer" />
       <ProjectReference Include="..\RedPajama\RedPajama.csproj" />
     </ItemGroup>
 

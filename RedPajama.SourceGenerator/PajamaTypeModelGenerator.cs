@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
-namespace RedPajama.SourceGen
+namespace RedPajama.SourceGenerator
 {
     [Generator]
     public class PajamaTypeModelGenerator : IIncrementalGenerator

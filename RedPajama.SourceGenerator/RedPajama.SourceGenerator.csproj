@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>9</LangVersion>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <NoWarn>RS2008</NoWarn>
+
+        <!-- Package Info -->
+        <Description>A C# source generator for creating strongly-typed model definitions through attributes</Description>
+        <Authors>Phil Scott</Authors>
+        <Copyright>Phil Scott</Copyright>
+        <PackageTags>source-generator;roslyn;codegen;typemodel</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/phil-scott-78/RedPajama</PackageProjectUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/phil-scott-78/RedPajama</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+
+        <!-- Deterministic builds -->
+        <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
+        <!-- Generator specific settings -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <IsRoslynComponent>true</IsRoslynComponent>
+        <DevelopmentDependency>true</DevelopmentDependency>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MinVer" PrivateAssets="All" Version="6.0.0" />
+    </ItemGroup>
+
+    <!-- This ensures the library will be packaged as a source generator when we use `dotnet pack` -->
+    <ItemGroup>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true"
+              PackagePath="analyzers/dotnet/cs" Visible="false" />
+        <None Include="..\README.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <!-- Package additional files that the source generator requires -->
+    <ItemGroup>
+        <None Include="$(OutputPath)\*.dll" Exclude="$(OutputPath)\$(AssemblyName).dll"
+              Pack="true" PackagePath="analyzers/dotnet/cs"
+              Visible="false" />
+    </ItemGroup>
+
+</Project>

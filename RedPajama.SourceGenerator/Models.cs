@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 
-namespace RedPajama.SourceGen
+namespace RedPajama.SourceGenerator
 {
     internal record TypeProcessingResult(List<string> HelperMethods, string BuilderCode)
     {
