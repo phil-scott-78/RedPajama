@@ -16,3 +16,12 @@ internal partial class TypeModelContext : PajamaTypeModelContext
 {
     
 }
+
+
+
+[PajamaTypeModel(typeof(ParseComplexRestaurantOrder.Order), "TheOrder2")]
+[PajamaTypeModel(typeof(ParseOrderStatus.Order), "TheOrder")]
+internal partial class TypeModelContext2 : PajamaTypeModelContext
+{
+    
+}

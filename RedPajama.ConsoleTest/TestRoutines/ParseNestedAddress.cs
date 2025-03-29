@@ -40,7 +40,7 @@ internal class ParseNestedAddress : ITestRoutine
         Customer customer;
         if (!model.IsThinkingModel())
         {
-            customer = await executor.InferAsync<Customer>(prompt);
+            customer = await executor.InferAsync<Customer>(prompt, new TypeModelContext());
         }
         else
         {

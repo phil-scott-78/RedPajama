@@ -14,6 +14,47 @@ namespace RedPajama.SourceGen
     {
         private const string AttributeFullName = "RedPajama.PajamaTypeModelAttribute";
 
+        // Define diagnostic descriptors
+        private static readonly DiagnosticDescriptor TypeNotFoundDescriptor = new(
+            id: "PJ0001",
+            title: "Type not found",
+            messageFormat: "Could not resolve type symbol for {0}",
+            category: "PajamaTypeModel",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
+            
+        private static readonly DiagnosticDescriptor DuplicateTypeNameDescriptor = new(
+            id: "PJ0002",
+            title: "Duplicate type name",
+            messageFormat: "Multiple types with the same name '{0}' are registered without custom names. Use the customName parameter in the PajamaTypeModelAttribute to distinguish them.",
+            category: "PajamaTypeModel",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+            
+        private static readonly DiagnosticDescriptor DuplicateCustomNameDescriptor = new(
+            id: "PJ0003",
+            title: "Duplicate custom name",
+            messageFormat: "Multiple types are registered with the same custom name '{0}'. Custom names must be unique.",
+            category: "PajamaTypeModel",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+            
+        private static readonly DiagnosticDescriptor FileNameConflictDescriptor = new(
+            id: "PJ0004",
+            title: "File name conflict between context classes",
+            messageFormat: "Type '{0}' in '{1}' conflicts with type '{2}' in '{3}'. Use different custom names to resolve this conflict.",
+            category: "PajamaTypeModel",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+            
+        private static readonly DiagnosticDescriptor DuplicateTypeRegistrationDescriptor = new(
+            id: "PJ0005",
+            title: "Type registered in multiple contexts",
+            messageFormat: "Type '{0}' is registered in both '{1}' and '{2}'. This may cause confusion when using the type models. Consider consolidating types in a single context.",
+            category: "PajamaTypeModel",
+            DiagnosticSeverity.Info,
+            isEnabledByDefault: true);
+
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
             // Register the attribute source
@@ -23,8 +64,7 @@ namespace RedPajama.SourceGen
             var typeModelContextDeclarations = context.SyntaxProvider
                 .ForAttributeWithMetadataName(
                     AttributeFullName,
-                    predicate: static (node, _) => node is ClassDeclarationSyntax classDecl &&
-                                                   classDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)),
+                    predicate: static (node, _) => node is ClassDeclarationSyntax classDecl && classDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)),
                     transform: static (ctx, _) => GetTypeModelContextData(ctx))
                 .Where(static m => m is not null);
 
@@ -32,12 +72,17 @@ namespace RedPajama.SourceGen
             var compilationAndTypes = context.CompilationProvider.Combine(typeModelContextDeclarations.Collect());
 
             // Generate source
-            context.RegisterSourceOutput(compilationAndTypes, static (spc, source) => Execute(source.Right, spc));
+            context.RegisterSourceOutput(compilationAndTypes, static (spc, source) => 
+            {
+                // Generate code
+                Execute(source.Right, spc);
+            });
         }
 
         private static TypeModelContextData GetTypeModelContextData(GeneratorAttributeSyntaxContext context)
         {
             var modelTypes = new List<TypeRegistration>();
+            var diagnostics = new List<Diagnostic>();
 
             // Process each attribute
             var attributeDatas = context.Attributes
@@ -50,41 +95,88 @@ namespace RedPajama.SourceGen
                     continue;
 
                 string customName = null;
-                if (attributeData.ConstructorArguments.Length > 1 &&
-                    attributeData.ConstructorArguments[1].Value is string name)
+                if (attributeData.ConstructorArguments.Length > 1 && attributeData.ConstructorArguments[1].Value is string name)
                 {
                     customName = name;
                 }
 
-                modelTypes.Add(new TypeRegistration(
-                    typeArg.ToDisplayString(),
-                    customName,
-                    typeArg));
+                // Try to get the attribute location for better error reporting
+                Location location = attributeData.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? Location.None;
+                
+                modelTypes.Add(new TypeRegistration(typeArg.ToDisplayString(), customName, typeArg) 
+                {
+                    Location = location
+                });
             }
 
             // Get the semantic model and class symbol
-            var classSymbol = context.TargetSymbol as INamedTypeSymbol;
-
-            if (classSymbol == null)
-                return null;
-
-            return new TypeModelContextData(
-                classSymbol.Name,
-                classSymbol.ContainingNamespace.ToDisplayString(),
-                modelTypes);
+            return context.TargetSymbol is INamedTypeSymbol classSymbol
+                ? new TypeModelContextData(
+                    classSymbol.Name,
+                    classSymbol.ContainingNamespace.ToDisplayString(),
+                    modelTypes)
+                : null;
         }
 
-        private static void Execute(ImmutableArray<TypeModelContextData> typeModelContexts,
-            SourceProductionContext context)
+        private static void Execute(ImmutableArray<TypeModelContextData> typeModelContexts, SourceProductionContext context)
         {
             if (typeModelContexts.IsDefaultOrEmpty)
                 return;
+                
+            // Check for types registered in multiple contexts
+            CheckCrossContextTypeConflicts(typeModelContexts, context);
+            
+            // Keep track of all source files we want to generate to avoid conflicts
+            var sourceFileNames = new Dictionary<string, (TypeModelContextData context, TypeRegistration reg)>();
+            var validContexts = new List<TypeModelContextData>();
 
+            // First pass: validate each context individually and collect file names
             foreach (var typeModelContext in typeModelContexts)
             {
                 if (typeModelContext == null)
                     continue;
 
+                // Validate the type registrations for duplicate names before code generation
+                if (!ValidateTypeRegistrations(typeModelContext, context))
+                {
+                    // Skip generating code for this context if validation failed
+                    continue;
+                }
+                
+                validContexts.Add(typeModelContext);
+                
+                // Check for file name conflicts between different context classes
+                foreach (var typeReg in typeModelContext.ModelTypes)
+                {
+                    if (typeReg.TypeSymbol == null)
+                        continue;
+                        
+                    var typeName = typeReg.CustomName ?? GetSimpleTypeName(typeReg.FullType);
+                    var fileName = $"{typeModelContext.ClassName}.{typeName}.g.cs";
+                    
+                    if (sourceFileNames.TryGetValue(fileName, out var existing))
+                    {
+                        // Report conflict - same file name would be generated for different contexts
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            FileNameConflictDescriptor,
+                            typeReg.Location,
+                            typeReg.FullType,
+                            typeModelContext.ClassName,
+                            existing.reg.FullType,
+                            existing.context.ClassName));
+                            
+                        // Remove the context from valid contexts to prevent generation
+                        validContexts.Remove(typeModelContext);
+                        break;
+                    }
+                    
+                    sourceFileNames[fileName] = (typeModelContext, typeReg);
+                }
+            }
+
+            // Second pass: generate code for all valid contexts
+            foreach (var typeModelContext in validContexts)
+            {
                 // Generate the base context class implementation
                 var baseSource = GenerateBaseContextSource(typeModelContext);
                 context.AddSource($"{typeModelContext.ClassName}.g.cs", SourceText.From(baseSource, Encoding.UTF8));
@@ -105,17 +197,111 @@ namespace RedPajama.SourceGen
                     {
                         // Log warning if type symbol is not available
                         context.ReportDiagnostic(Diagnostic.Create(
-                            new DiagnosticDescriptor(
-                                "PJ0001",
-                                "Type not found",
-                                $"Could not resolve type symbol for {typeReg.FullType}",
-                                "PajamaTypeModel",
-                                DiagnosticSeverity.Warning,
-                                isEnabledByDefault: true),
-                            Location.None));
+                            TypeNotFoundDescriptor,
+                            typeReg.Location,
+                            typeReg.FullType));
                     }
                 }
             }
+        }
+
+        private static void CheckCrossContextTypeConflicts(ImmutableArray<TypeModelContextData> typeModelContexts, SourceProductionContext context)
+        {
+            var typeRegistrationMap = new Dictionary<string, (TypeModelContextData context, TypeRegistration reg)>();
+            
+            foreach (var typeModelContext in typeModelContexts)
+            {
+                if (typeModelContext == null)
+                    continue;
+                    
+                foreach (var typeReg in typeModelContext.ModelTypes)
+                {
+                    if (typeReg.TypeSymbol == null)
+                        continue;
+                        
+                    var fullTypeName = typeReg.FullType;
+                    
+                    if (typeRegistrationMap.TryGetValue(fullTypeName, out var existing))
+                    {
+                        // Report that the same type is registered in two different contexts
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            DuplicateTypeRegistrationDescriptor,
+                            typeReg.Location,
+                            fullTypeName,
+                            existing.context.ClassName,
+                            typeModelContext.ClassName));
+                    }
+                    else
+                    {
+                        typeRegistrationMap[fullTypeName] = (typeModelContext, typeReg);
+                    }
+                }
+            }
+        }
+        
+        private static bool ValidateTypeRegistrations(TypeModelContextData typeModelContext, SourceProductionContext context)
+        {
+            bool isValid = true;
+            
+            // Check for duplicate type names (when custom name is not provided)
+            var typesBySimpleName = new Dictionary<string, List<TypeRegistration>>();
+            
+            // Check for duplicate custom names
+            var typesByCustomName = new Dictionary<string, List<TypeRegistration>>();
+            
+            foreach (var typeReg in typeModelContext.ModelTypes)
+            {
+                string simpleName = GetSimpleTypeName(typeReg.FullType);
+                
+                // If custom name is not specified, use the simple type name
+                if (string.IsNullOrEmpty(typeReg.CustomName))
+                {
+                    if (!typesBySimpleName.TryGetValue(simpleName, out var list))
+                    {
+                        list = new List<TypeRegistration>();
+                        typesBySimpleName[simpleName] = list;
+                    }
+                    list.Add(typeReg);
+                }
+                else
+                {
+                    // Check for duplicate custom names
+                    if (!typesByCustomName.TryGetValue(typeReg.CustomName, out var customList))
+                    {
+                        customList = new List<TypeRegistration>();
+                        typesByCustomName[typeReg.CustomName] = customList;
+                    }
+                    customList.Add(typeReg);
+                }
+            }
+            
+            // Report diagnostics for duplicate type names
+            foreach (var entry in typesBySimpleName.Where(e => e.Value.Count > 1))
+            {
+                foreach (var reg in entry.Value)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        DuplicateTypeNameDescriptor,
+                        reg.Location,
+                        entry.Key));
+                    isValid = false;
+                }
+            }
+            
+            // Report diagnostics for duplicate custom names
+            foreach (var entry in typesByCustomName.Where(e => e.Value.Count > 1))
+            {
+                foreach (var reg in entry.Value)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        DuplicateCustomNameDescriptor,
+                        reg.Location,
+                        entry.Key));
+                    isValid = false;
+                }
+            }
+            
+            return isValid;
         }
 
         private static string GenerateBaseContextSource(TypeModelContextData data)

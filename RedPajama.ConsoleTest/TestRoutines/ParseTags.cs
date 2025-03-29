@@ -27,7 +27,7 @@ internal class ParseTags : ITestRoutine
         BlogPost post;
         if (!model.IsThinkingModel())
         {
-            post = await executor.InferAsync<BlogPost>(prompt);
+            post = await executor.InferAsync<BlogPost>(prompt, new TypeModelContext());
         }
         else
         {

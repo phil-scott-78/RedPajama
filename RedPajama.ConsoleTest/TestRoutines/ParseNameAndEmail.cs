@@ -25,7 +25,7 @@ internal class ParseNameAndEmail : ITestRoutine
         Person person;
         if (!model.IsThinkingModel())
         {
-            person = await executor.InferAsync<Person>(prompt);
+            person = await executor.InferAsync<Person>(prompt, new TypeModelContext());
         }
         else
         {

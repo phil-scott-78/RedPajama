@@ -38,7 +38,7 @@ internal class ParseBookCollection : ITestRoutine
         Library library;
         if (!model.IsThinkingModel())
         {
-            library = await executor.InferAsync<Library>(prompt);
+            library = await executor.InferAsync<Library>(prompt, new TypeModelContext());
         }
         else
         {

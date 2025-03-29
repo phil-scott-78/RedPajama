@@ -29,7 +29,7 @@ internal class ParseAndInferColor : ITestRoutine
         ColorDescription color;
         if (!model.IsThinkingModel())
         {
-            color = await executor.InferAsync<ColorDescription>(prompt);
+            color = await executor.InferAsync<ColorDescription>(prompt, new TypeModelContext());
         }
         else
         {
