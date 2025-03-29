@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
@@ -50,7 +49,8 @@ public static class ExecutorExtensions
         return (o, thoughtsSb.ToString());
     }
     
-    public static async Task<T> InferAsync<[MeansImplicitUse(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature, ImplicitUseTargetFlags.WithMembers)] T>(this ILLamaExecutor executor, string prompt)
+    public static async Task<T> InferAsync<[MeansImplicitUse(ImplicitUseKindFlags.InstantiatedNoFixedConstructorSignature, ImplicitUseTargetFlags.WithMembers)] T>(this ILLamaExecutor executor, string prompt,
+        PajamaTypeModelContext? typeModelContext = null)
     {
         var sb = new StringBuilder();
         await foreach (var s in InferInternalAsync<T>(executor, prompt, false))
@@ -61,7 +61,7 @@ public static class ExecutorExtensions
             }
         }
 
-        var json = sb.ToString().Replace("```json", string.Empty).Replace("```", string.Empty);
+        var json = sb.ToString();
         return JsonSerializer.Deserialize<T>(json, JsonSerializerOptions) ?? throw new InvalidOperationException("Couldn't deserialize result");
     }
 
@@ -70,9 +70,14 @@ public static class ExecutorExtensions
     private static async IAsyncEnumerable<(string Value, ResultType responseType)> InferInternalAsync<T>(
         ILLamaExecutor executor,
         string prompt, 
-        bool isThinkingModel)
+        bool isThinkingModel,
+        PajamaTypeModelContext? typeModelContext = null
+        )
     {
-        var typeModelBuilder = new TypeModelBuilder<T>().Build();
+        var typeModelBuilder = typeModelContext == null 
+            ? new TypeModelBuilder<T>().Build() 
+            : TypeModelContext.Get<T>();
+        
         var gbnfGenerator = new GbnfGenerator();
         var jsonSampleGenerator = new JsonSampleGenerator();
         

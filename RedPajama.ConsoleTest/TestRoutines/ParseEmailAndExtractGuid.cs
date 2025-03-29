@@ -5,7 +5,7 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseEmailAndExtractGuid : ITestRoutine
 {
-    private class UserRecord
+    public class UserRecord
     {
         public required string Username { get; init; }
         public required string Email { get; init; }

@@ -30,7 +30,7 @@ public class TypeModel : BaseTypeModel
     /// </summary>
     /// <param name="name">The name of the type model.</param>
     /// <param name="properties">The properties of the type model.</param>
-    internal TypeModel(string name, IEnumerable<PropertyModel> properties) : base(name)
+    public TypeModel(string name, IEnumerable<PropertyModel> properties) : base(name)
     {
         Properties = properties.ToArray();
     }
@@ -143,7 +143,7 @@ public class TypeModel : BaseTypeModel
 /// <param name="name">The name of the property.</param>
 /// <param name="propertyType">The type of the property.</param>
 /// <param name="description">The description of the property.</param>
-internal class PropertyModel(string name, BaseTypeModel propertyType, string? description = null)
+public class PropertyModel(string name, BaseTypeModel propertyType, string? description = null)
 {
     /// <summary>
     /// Gets the name of the property.
@@ -168,7 +168,7 @@ internal class PropertyModel(string name, BaseTypeModel propertyType, string? de
 /// <param name="allowedValues">The allowed values for the string type.</param>
 /// <param name="minLength">The minimum length of the string.</param>
 /// <param name="maxLength">The maximum length of the string.</param>
-internal class StringTypeModel(string name, string[]? allowedValues = null, int? minLength = null, int? maxLength = null) : BaseTypeModel(name)
+public class StringTypeModel(string name, string[]? allowedValues = null, int? minLength = null, int? maxLength = null) : BaseTypeModel(name)
 {
     /// <summary>
     /// Gets the allowed values for the string type.
@@ -194,22 +194,58 @@ internal class StringTypeModel(string name, string[]? allowedValues = null, int?
         new(Name, allowedValues, MinLength, MaxLength);
 }
 
-internal class IntegerTypeModel(string name) : BaseTypeModel(name); // int, long, etc
+/// <summary>
+/// Represents an integer type model.
+/// </summary>
+/// <param name="name">The name of the type model.</param>
+public class IntegerTypeModel(string name) : BaseTypeModel(name); // int, long, etc
 
-internal class DecimalTypeModel(string name) : BaseTypeModel(name); // decimal, float, double, etc
+/// <summary>
+/// Represents a decimal type model.
+/// </summary>
+/// <param name="name">The name of the type model.</param>
+public class DecimalTypeModel(string name) : BaseTypeModel(name); // decimal, float, double, etc
 
-internal class DateTypeModel(string name) : BaseTypeModel(name); // ISO 8601 dates
+/// <summary>
+/// Represents a date type model.
+/// </summary>
+/// <param name="name">The name of the type model.</param>
+public class DateTypeModel(string name) : BaseTypeModel(name); // ISO 8601 dates
 
-internal class BoolTypeModel(string name) : BaseTypeModel(name);
+/// <summary>
+/// Represents a bool type model.
+/// </summary>
+/// <param name="name">The name of the type model.</param>
+public class BoolTypeModel(string name) : BaseTypeModel(name);
 
-internal class GuidTypeModel(string name) : BaseTypeModel(name);
+/// <summary>
+/// Represents a Guid type model.
+/// </summary>
+/// <param name="name">The name of the type model.</param>
+public class GuidTypeModel(string name) : BaseTypeModel(name);
 
-internal class ArrayTypeModel(string name, BaseTypeModel arrayType) : BaseTypeModel(name)
+/// <summary>
+/// Represents an array type model.
+/// </summary>
+/// <param name="name">The name of the type model.</param>
+/// <param name="arrayType">The type of the array elements.</param>
+public class ArrayTypeModel(string name, BaseTypeModel arrayType) : BaseTypeModel(name)
 {
+    /// <summary>
+    /// Gets the type of the array elements.
+    /// </summary>
     public BaseTypeModel ArrayType { get; } = arrayType;
 }
 
-internal class EnumTypeModel(string name, IEnumerable<string> enumValues) : BaseTypeModel(name)
+/// <summary>
+/// Represents an enumeration type model.
+/// </summary>
+/// <param name="name">The name of the type model.</param>
+/// <param name="enumValues">The enumeration values.</param>
+public class EnumTypeModel(string name, IEnumerable<string> enumValues) : BaseTypeModel(name)
 {
+    /// <summary>
+    /// Gets the enumeration values.
+    /// </summary>
     public string[] EnumValues { get; } = enumValues.ToArray();
 }

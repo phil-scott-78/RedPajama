@@ -6,7 +6,7 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseOrderStatus : ITestRoutine
 {
-    private class Order
+    public class Order
     {
         public required string OrderId { get; init; }
         public required OrderStatus Status { get; init; }

@@ -7,7 +7,7 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 internal class ParseTags : ITestRoutine
 {    
     [UsedImplicitly(ImplicitUseTargetFlags.Members)]
-    private class BlogPost
+    public class BlogPost
     {
         public required string Title { get; init; }
         public required string[] Tags { get; init; }

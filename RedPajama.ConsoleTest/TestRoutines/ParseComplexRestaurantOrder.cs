@@ -7,7 +7,7 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseComplexRestaurantOrder : ITestRoutine
 {
-    class Order
+    public class Order
     {
         [Description("The the order identifier, in the format XYZ123.")]
         public required string OrderId { get; init; }
@@ -100,7 +100,7 @@ internal class ParseComplexRestaurantOrder : ITestRoutine
         Order order;
         if (!model.IsThinkingModel())
         {
-            order = await executor.InferAsync<Order>(prompt);
+            order = await executor.InferAsync<Order>(prompt, new TypeModelContext());
         }
         else
         {

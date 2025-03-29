@@ -5,7 +5,7 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseNameAndEmail : ITestRoutine
 {
-    private class Person
+    public class Person
     {
         public required string FirstName { get; init; }
         public required string LastName { get; init; }

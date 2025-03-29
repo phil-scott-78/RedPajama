@@ -6,7 +6,7 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseNestedAddress : ITestRoutine
 {
-    private class Customer 
+    public class Customer 
     {
         public required string Name { get; init; }
         public required Address ShippingAddress { get; init; }

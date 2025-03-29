@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedPajama.Tests", "RedPajam
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedPajama.ConsoleTest", "RedPajama.ConsoleTest\RedPajama.ConsoleTest.csproj", "{45E96A91-EE37-4E0E-9737-1E6C7877991A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedPajama.SourceGen", "RedPajama.SourceGen\RedPajama.SourceGen.csproj", "{8B1984D0-E556-495A-B183-3509F72506B8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{45E96A91-EE37-4E0E-9737-1E6C7877991A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{45E96A91-EE37-4E0E-9737-1E6C7877991A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{45E96A91-EE37-4E0E-9737-1E6C7877991A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B1984D0-E556-495A-B183-3509F72506B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B1984D0-E556-495A-B183-3509F72506B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B1984D0-E556-495A-B183-3509F72506B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B1984D0-E556-495A-B183-3509F72506B8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

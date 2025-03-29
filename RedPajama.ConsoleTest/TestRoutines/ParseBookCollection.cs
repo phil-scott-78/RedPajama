@@ -6,7 +6,7 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseBookCollection : ITestRoutine
 {
-    private class Library
+    public class Library
     {
         public required string Name { get; init; }
         public required Book[] Books { get; init; }

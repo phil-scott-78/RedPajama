@@ -6,7 +6,7 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseAndInferColor : ITestRoutine
 {
-    private class ColorDescription
+    public class ColorDescription
     {
         public required string Item { get; init; }
         public required string Description { get; init; }
