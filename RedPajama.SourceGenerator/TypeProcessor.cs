@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.CodeDom.Compiler;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -11,11 +13,10 @@ namespace RedPajama.SourceGenerator
     internal class TypeProcessor
     {
         private readonly HashSet<string> _processedTypes = new HashSet<string>();
-        private readonly Dictionary<string, string> _typeHelperMethods = new Dictionary<string, string>();
+        private readonly HashSet<string> _generatedMethods = new HashSet<string>();
 
-        public TypeProcessingResult ProcessType(ITypeSymbol typeSymbol, TypeModelContextData contextData)
+        public void ProcessType(ITypeSymbol typeSymbol, TypeModelContextData contextData, IndentedTextWriter writer)
         {
-            var helperMethods = new List<string>();
             var typeFullName = typeSymbol.ToDisplayString();
             var typeName = typeSymbol.Name;
 
@@ -29,26 +30,19 @@ namespace RedPajama.SourceGenerator
                     {
                         if (member is IPropertySymbol { GetMethod: { DeclaredAccessibility: Accessibility.Public } } property)
                         {
-                            ProcessPropertyType(property.Type, contextData);
+                            ProcessPropertyType(property.Type, contextData, writer);
                         }
                     }
 
                     // Generate helper method for this type
-                    var helperMethod = GenerateTypeHelperMethod(typeSymbol, typeName);
-                    if (!string.IsNullOrEmpty(helperMethod))
+                    string methodName = $"Build{GetLongName(typeSymbol)}Model";
+                    
+                    if (_generatedMethods.Add(methodName))
                     {
-                        _typeHelperMethods[typeFullName] = helperMethod;
+                        GenerateTypeHelperMethod(typeSymbol, typeName, writer);
                     }
                 }
             }
-
-            // Get all helper methods
-            helperMethods.AddRange(_typeHelperMethods.Values);
-
-            // Generate the main builder code
-            var builderCode = $"            return Build{GetLongName(typeSymbol)}Model();";
-
-            return new TypeProcessingResult(helperMethods, builderCode);
         }
 
         private static string GetLongName(ITypeSymbol typeSymbol)
@@ -56,7 +50,7 @@ namespace RedPajama.SourceGenerator
             return typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace(".", "").Replace(":", "");
         }
 
-        private void ProcessPropertyType(ITypeSymbol typeSymbol, TypeModelContextData contextData)
+        private void ProcessPropertyType(ITypeSymbol typeSymbol, TypeModelContextData contextData, IndentedTextWriter writer)
         {
             var typeFullName = typeSymbol.ToDisplayString();
 
@@ -69,7 +63,7 @@ namespace RedPajama.SourceGenerator
             // Handle arrays and collections
             if (typeSymbol is IArrayTypeSymbol arrayType)
             {
-                ProcessPropertyType(arrayType.ElementType, contextData);
+                ProcessPropertyType(arrayType.ElementType, contextData, writer);
                 return;
             }
 
@@ -78,7 +72,7 @@ namespace RedPajama.SourceGenerator
             {
                 foreach (var typeArg in namedType.TypeArguments)
                 {
-                    ProcessPropertyType(typeArg, contextData);
+                    ProcessPropertyType(typeArg, contextData, writer);
                 }
 
                 // If it's a collection, we're done
@@ -93,11 +87,11 @@ namespace RedPajama.SourceGenerator
             {
                 // Generate helper method for this type
                 var typeName = typeSymbol.Name;
-                var helperMethod = GenerateTypeHelperMethod(typeSymbol, typeName);
-
-                if (!string.IsNullOrEmpty(helperMethod))
+                string methodName = $"Build{GetLongName(typeSymbol)}Model";
+                
+                if (_generatedMethods.Add(methodName))
                 {
-                    _typeHelperMethods[typeFullName] = helperMethod;
+                    GenerateTypeHelperMethod(typeSymbol, typeName, writer);
                 }
 
                 // Process properties
@@ -107,68 +101,91 @@ namespace RedPajama.SourceGenerator
                         property.GetMethod != null &&
                         property.GetMethod.DeclaredAccessibility == Accessibility.Public)
                     {
-                        ProcessPropertyType(property.Type, contextData);
+                        ProcessPropertyType(property.Type, contextData, writer);
                     }
                 }
             }
             else if (typeSymbol.TypeKind == TypeKind.Enum)
             {
                 // Generate enum helper
-                var enumHelperMethod = GenerateEnumHelperMethod(typeSymbol);
-                _typeHelperMethods[typeFullName] = enumHelperMethod;
+                string methodName = $"Build{GetLongName(typeSymbol)}EnumModel";
+                
+                if (_generatedMethods.Add(methodName))
+                {
+                    GenerateEnumHelperMethod(typeSymbol, writer);
+                }
             }
         }
 
-        private string GenerateTypeHelperMethod(ITypeSymbol typeSymbol, string typeName)
+        /// <summary>
+        /// Generates a helper method for building a type model
+        /// </summary>
+        private void GenerateTypeHelperMethod(ITypeSymbol typeSymbol, string typeName, IndentedTextWriter writer)
         {
-            var sb = new StringBuilder();
-
-            sb.AppendLine($"        private TypeModel Build{typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace(".", "").Replace(":", "")}Model()");
-            sb.AppendLine("        {");
-            sb.AppendLine($"            var properties = new List<PropertyModel>();");
+            var longName = GetLongName(typeSymbol);
+            writer.WriteLine($"private TypeModel Build{longName}Model()");
+            writer.WriteLine("{");
+            writer.Indent++;
+            writer.WriteLine("var properties = new List<PropertyModel>();");
+            writer.WriteLine();
 
             // For a class or struct, add all properties
             if (typeSymbol.TypeKind is TypeKind.Class or TypeKind.Struct)
             {
                 foreach (var member in typeSymbol.GetMembers())
                 {
-                    if (member is not IPropertySymbol { GetMethod: { DeclaredAccessibility: Accessibility.Public } } property) continue;
-                    sb.AppendLine($"            // Property: {property.Name}");
-                    sb.AppendLine($"            properties.Add(new PropertyModel(");
-                    sb.AppendLine($"                \"{property.Name}\",");
-                    sb.AppendLine($"                {GetPropertyTypeCode(property)},");
+                    if (member is not IPropertySymbol { GetMethod: { DeclaredAccessibility: Accessibility.Public } } property) 
+                        continue;
+                    
+                    writer.WriteLine($"// Property: {property.Name}");
+                    writer.WriteLine("properties.Add(new PropertyModel(");
+                    writer.Indent++;
+                    writer.WriteLine($"\"{property.Name}\",");
+                    writer.WriteLine($"{GetPropertyTypeCode(property)},");
 
                     var description = GetDescriptionFromAttributes(property);
-                    sb.AppendLine(!string.IsNullOrEmpty(description)
-                        ? $"                \"{EscapeString(description)}\"));"
-                        : $"                null));");
+                    if (!string.IsNullOrEmpty(description))
+                        writer.WriteLine($"\"{EscapeString(description)}\"));");
+                    else
+                        writer.WriteLine("null));");
+                    writer.Indent--;
                 }
             }
 
-            sb.AppendLine($"            return new TypeModel(\"{typeName}\", properties);");
-            sb.AppendLine("        }");
-
-            return sb.ToString();
+            writer.WriteLine();
+            writer.WriteLine($"return new TypeModel(\"{typeName}\", properties);");
+            writer.Indent--;
+            writer.WriteLine("}");
         }
 
-        private string GenerateEnumHelperMethod(ITypeSymbol enumType)
+        /// <summary>
+        /// Generates a helper method for building an enum type model
+        /// </summary>
+        private void GenerateEnumHelperMethod(ITypeSymbol enumType, IndentedTextWriter writer)
         {
-            var sb = new StringBuilder();
+            var longName = GetLongName(enumType);
             var typeName = enumType.Name;
 
-            sb.AppendLine($"        private EnumTypeModel Build{GetLongName(enumType)}EnumModel()");
-            sb.AppendLine("        {");
+            writer.WriteLine($"private EnumTypeModel Build{longName}EnumModel()");
+            writer.WriteLine("{");
+            writer.Indent++;
 
             // Get enum values
             var enumValues = enumType.GetMembers()
                 .Where(m => m.Kind == SymbolKind.Field && m.Name != "value__")
                 .Select(m => $"\"{m.Name}\"");
 
-            sb.AppendLine(
-                $"            return new EnumTypeModel(\"{typeName}\", new[] {{{string.Join(", ", enumValues)}}});");
-            sb.AppendLine("        }");
+            writer.WriteLine($"return new EnumTypeModel(\"{typeName}\", new[] {{{string.Join(", ", enumValues)}}});");
+            writer.Indent--;
+            writer.WriteLine("}");
+        }
 
-            return sb.ToString();
+        /// <summary>
+        /// Gets the builder code for a type model builder method
+        /// </summary>
+        public string GetBuilderCode(ITypeSymbol typeSymbol)
+        {
+            return $"return Build{GetLongName(typeSymbol)}Model();";
         }
 
         private string GetPropertyTypeCode(IPropertySymbol property)
@@ -184,17 +201,17 @@ namespace RedPajama.SourceGenerator
                 case SpecialType.System_String:
                     return GetStringTypeModelCode(property);
                 case SpecialType.System_Int32:
-                    return $"new IntegerTypeModel(\"int\")";
+                    return "new IntegerTypeModel(\"int\")";
                 case SpecialType.System_Int64:
-                    return $"new IntegerTypeModel(\"long\")";
+                    return "new IntegerTypeModel(\"long\")";
                 case SpecialType.System_Decimal:
-                    return $"new DecimalTypeModel(\"decimal\")";
+                    return "new DecimalTypeModel(\"decimal\")";
                 case SpecialType.System_Double:
-                    return $"new DecimalTypeModel(\"double\")";
+                    return "new DecimalTypeModel(\"double\")";
                 case SpecialType.System_Single:
-                    return $"new DecimalTypeModel(\"float\")";
+                    return "new DecimalTypeModel(\"float\")";
                 case SpecialType.System_Boolean:
-                    return $"new BoolTypeModel(\"bool\")";
+                    return "new BoolTypeModel(\"bool\")";
             }
 
             // Handle other common types
@@ -207,7 +224,7 @@ namespace RedPajama.SourceGenerator
 
             if (typeName == "Guid")
             {
-                return $"new GuidTypeModel(\"Guid\")";
+                return "new GuidTypeModel(\"Guid\")";
             }
 
             // Handle arrays
@@ -242,14 +259,14 @@ namespace RedPajama.SourceGenerator
         {
             if (property == null)
             {
-                return $"new StringTypeModel(\"string\")";
+                return "new StringTypeModel(\"string\")";
             }
             
             int? minLength = null;
             int? maxLength = null;
             string[] allowedValues = null;
 
-            // Look for MinLength attribute
+            // Look for attributes
             foreach (var attr in property.GetAttributes())
             {
                 if (attr.AttributeClass == null) continue;
@@ -273,7 +290,6 @@ namespace RedPajama.SourceGenerator
                                 .Where(v => v != null)
                                 .ToArray();
                         }
-
                         break;
                     }
                 }
@@ -307,7 +323,8 @@ namespace RedPajama.SourceGenerator
             return property.GetAttributes()
                 .Where(attr => attr.AttributeClass?.Name == "DescriptionAttribute")
                 .Where(attr => attr.ConstructorArguments.Length > 0)
-                .Select(attr => attr.ConstructorArguments[0].Value?.ToString()).FirstOrDefault();
+                .Select(attr => attr.ConstructorArguments[0].Value?.ToString())
+                .FirstOrDefault();
         }
 
         private static string EscapeString(string input)
