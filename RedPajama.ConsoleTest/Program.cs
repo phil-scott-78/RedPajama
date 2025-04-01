@@ -60,8 +60,9 @@ models = models
 
 var tests = new List<ITestRoutine>()
 {
-    new BatchedOperation(),
+    // new BatchedOperation(),
     new ParseComplexRestaurantOrder(),
+    new ParseComplexRestaurantOrderInParts(),
     new ParseEmailAndExtractGuid(),
     new ParseNameAndEmail(),
     new ParseOrderStatus(),
@@ -72,6 +73,7 @@ var tests = new List<ITestRoutine>()
 };
 
 
+Dictionary<string, Dictionary<string, (bool Success, TimeSpan Elapsed)>> timings = new();
 foreach (var modelFile in models)
 {
     var parameters = new ModelParams(modelFile)
@@ -80,13 +82,16 @@ foreach (var modelFile in models)
         GpuLayerCount = -1,
     };
 
-    AnsiConsole.MarkupLineInterpolated($"[blue]{Path.GetFileNameWithoutExtension(modelFile)}[/]");
+    var modeFileName = Path.GetFileNameWithoutExtension(modelFile);
+    AnsiConsole.MarkupLineInterpolated($"[blue]{modeFileName}[/]");
     using var model = await LLamaWeights.LoadFromFileAsync(parameters);
     // let's mix it up on the spinner for thinking models
     var spinner = model.IsThinkingModel() ? Spinner.Known.Dots8Bit : Spinner.Known.Dots2;
 
+    Dictionary<string,  (bool Success, TimeSpan Elapsed)> timing = new(); 
     foreach (var r in tests)
     {
+        bool result = false;
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         try
@@ -94,6 +99,7 @@ foreach (var modelFile in models)
             AnsiConsole.MarkupInterpolated($"  {r.GetType().Name}: ");
             await r.Run(model, parameters).Spinner(spinner);
             AnsiConsole.MarkupLine($"[green]Ok[/] [grey]{stopWatch.ElapsedMilliseconds}ms[/]");
+            result = true;
         }
         catch (NotEqualException e)
         {
@@ -113,7 +119,58 @@ foreach (var modelFile in models)
                 $"[red]Failed {e.Message}[/] [grey]{stopWatch.ElapsedMilliseconds}ms[/]");
             Debug.WriteLine(e.ToString());
         }
+        
+        stopWatch.Stop();
+        timing.Add(r.GetType().Name, (result, stopWatch.Elapsed));
     }
+    
+    timings.Add(modeFileName, timing);
 
     AnsiConsole.WriteLine();
 }
+
+// Create a table to display the timing results
+var table = new Table();
+table.Border(TableBorder.Rounded);
+
+// Add the "Model" column first
+table.AddColumn(new TableColumn("Model").LeftAligned());
+
+// Get all unique test names
+var allTestNames = timings.Values
+    .SelectMany(modelTiming => modelTiming.Keys)
+    .Distinct()
+    .OrderBy(testName => testName)
+    .ToList();
+
+// Add columns for each test
+foreach (var testName in allTestNames)
+{
+    table.AddColumn(new TableColumn(testName).RightAligned());
+}
+
+// Add rows for each model
+foreach (var (modelName, value) in timings.OrderBy(t => t.Key))
+{
+    var cells = new List<string> { $"[bold]{modelName}[/]" };
+
+    // Add cells for each test
+    foreach (var testName in allTestNames)
+    {
+        if (value.TryGetValue(testName, out var result))
+        {
+            var elapsed = result.Elapsed.TotalMilliseconds.ToString("F0");
+            var color = result.Success ? "green" : "red";
+            cells.Add($"[{color}]{elapsed}ms[/]");
+        }
+        else
+        {
+            cells.Add("[grey]N/A[/]");
+        }
+    }
+
+    table.AddRow(cells.ToArray());
+}
+
+// Render the table
+AnsiConsole.Write(table);

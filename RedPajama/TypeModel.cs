@@ -168,7 +168,8 @@ public class PropertyModel(string name, BaseTypeModel propertyType, string? desc
 /// <param name="allowedValues">The allowed values for the string type.</param>
 /// <param name="minLength">The minimum length of the string.</param>
 /// <param name="maxLength">The maximum length of the string.</param>
-public class StringTypeModel(string name, string[]? allowedValues = null, int? minLength = null, int? maxLength = null) : BaseTypeModel(name)
+/// <param name="format">The format string of the string.</param>
+public class StringTypeModel(string name, string[]? allowedValues = null, int? minLength = null, int? maxLength = null, string? format = null) : BaseTypeModel(name)
 {
     /// <summary>
     /// Gets the allowed values for the string type.
@@ -186,12 +187,17 @@ public class StringTypeModel(string name, string[]? allowedValues = null, int? m
     public int? MaxLength { get; } = maxLength;
 
     /// <summary>
+    /// Gets the format of the string.
+    /// </summary>
+    public string? Format { get; } = format;
+
+    /// <summary>
     /// Creates a new instance of StringTypeModel with the specified allowed values.
     /// </summary>
     /// <param name="allowedValues">The allowed values for the string type.</param>
     /// <returns>A new instance of StringTypeModel with the updated allowed values.</returns>
     internal StringTypeModel WithAllowedValues(string[] allowedValues) =>
-        new(Name, allowedValues, MinLength, MaxLength);
+        new(Name, allowedValues, MinLength, MaxLength, Format);
 }
 
 /// <summary>

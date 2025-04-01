@@ -27,10 +27,10 @@ public class TypeModelBuilder<T>
     public TypeModel Build()
     {
         var type = typeof(T);
-        return (TypeModel)BuildTypeModel(type, null);
+        return (TypeModel)BuildTypeModel(type, null, null);
     }
 
-    private BaseTypeModel BuildTypeModel(Type type, string? propertyPath)
+    private BaseTypeModel BuildTypeModel(Type type, string? propertyPath, PropertyInfo? propertyInfo)
     {
         // Detect infinite loop by checking visited types
         if (!_visitedTypes.Add(type))
@@ -39,9 +39,9 @@ public class TypeModelBuilder<T>
         try
         {
             if (type.IsArray)
-                return CreateArrayTypeModel(type, propertyPath);
+                return CreateArrayTypeModel(type, propertyPath, propertyInfo);
 
-            if (TryCreatePrimitiveTypeModel(type, out var primitiveModel))
+            if (TryCreatePrimitiveTypeModel(type, propertyInfo, out var primitiveModel))
                 return primitiveModel;
 
             if (type.IsEnum)
@@ -56,15 +56,51 @@ public class TypeModelBuilder<T>
         }
     }
 
-    private ArrayTypeModel CreateArrayTypeModel(Type type, string? propertyPath)
+    private ArrayTypeModel CreateArrayTypeModel(Type type, string? propertyPath, PropertyInfo? propertyInfo)
     {
         var elementType = type.GetElementType()!;
-        var arrayType = BuildTypeModel(elementType, propertyPath);
+        
+        // Check if this is a string array with allowed values
+        if (elementType == typeof(string) && propertyInfo != null)
+        {
+            var allowedValues = GetAllowedValues(propertyInfo);
+            var minLength = GetMinLength(propertyInfo);
+            var maxLength = GetMaxLength(propertyInfo);
+            var format = GetFormat(propertyInfo);
+            
+            if (allowedValues is { Length: > 0 } || minLength != null || maxLength != null || !string.IsNullOrWhiteSpace(format))
+            {
+                // Create a StringTypeModel with the allowed values for the array elements
+                var stringTypeModel = new StringTypeModel(
+                    elementType.Name,
+                    allowedValues,
+                    minLength,
+                    maxLength,
+                    format
+                );
+                
+                return new ArrayTypeModel(elementType.Name + "Array", stringTypeModel);
+            }
+        }
+        
+        // Handle other array types normally
+        var arrayType = BuildTypeModel(elementType, propertyPath, null);
         return new ArrayTypeModel(elementType.Name + "Array", arrayType);
     }
 
-    private static bool TryCreatePrimitiveTypeModel(Type type, [NotNullWhen(true)] out BaseTypeModel? model)
+    private static bool TryCreatePrimitiveTypeModel(Type type, PropertyInfo? propertyInfo, [NotNullWhen(true)] out BaseTypeModel? model)
     {
+        if (type == typeof(string) && propertyInfo != null)
+        {
+            var allowedValues = GetAllowedValues(propertyInfo);
+            var minLength = GetMinLength(propertyInfo);
+            var maxLength = GetMaxLength(propertyInfo);
+            var format = GetFormat(propertyInfo);
+
+            model = new StringTypeModel(type.Name, allowedValues, minLength, maxLength, format);
+            return true;
+        }
+        
         model = type switch
         {
             _ when type == typeof(string) => new StringTypeModel(type.Name),
@@ -98,24 +134,8 @@ public class TypeModelBuilder<T>
         var description = GetDescription(propertyInfo);
         var type = propertyInfo.PropertyType;
         
-        BaseTypeModel propertyType;
-        
-        if (type == typeof(string))
-        {
-            var allowedValues = GetAllowedValues(propertyInfo);
-            var minLength = GetMinLength(propertyInfo);
-            var maxLength = GetMaxLength(propertyInfo);
-
-            propertyType = new StringTypeModel(type.Name, allowedValues, minLength, maxLength);
-        }
-        else if (TryCreatePrimitiveTypeModel(type, out var primitiveModel))
-        {
-            propertyType = primitiveModel;
-        }
-        else
-        {
-            propertyType = BuildTypeModel(type, propertyPath);
-        }
+        // Pass the propertyInfo to BuildTypeModel so attributes can be used
+        var propertyType = BuildTypeModel(type, propertyPath, propertyInfo);
 
         return new PropertyModel(
             propertyInfo.Name,
@@ -123,12 +143,14 @@ public class TypeModelBuilder<T>
             description
         );
     }
-
+    
     private static int? GetMinLength(PropertyInfo propertyInfo) => propertyInfo.GetCustomAttribute<MinLengthAttribute>()?.Length;
 
     private static int? GetMaxLength(PropertyInfo propertyInfo) => propertyInfo.GetCustomAttribute<MaxLengthAttribute>()?.Length;
 
     private static string? GetDescription(PropertyInfo propertyInfo) => propertyInfo.GetCustomAttribute<DescriptionAttribute>()?.Description;
+    
+    private static string? GetFormat(PropertyInfo propertyInfo) => propertyInfo.GetCustomAttribute<FormatAttribute>()?.Format;
     
     private static string[]? GetAllowedValues(PropertyInfo propertyInfo) => propertyInfo
         .GetCustomAttribute<AllowedValuesAttribute>()?.Values

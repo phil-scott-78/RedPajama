@@ -5,27 +5,38 @@ using LLama.Abstractions;
 
 namespace RedPajama.ConsoleTest.TestRoutines;
 
-internal class ParseComplexRestaurantOrder : ITestRoutine
+/// <summary>
+/// Example of ParseComplexRestarauntOrder, split into two parts to hopefully give the llm a chance at parsing it
+/// </summary>
+internal class ParseComplexRestaurantOrderInParts : ITestRoutine
 {
-    public class Order
+    public class OrderCustomer
     {
         [Description("The the order identifier")]
         [Format("AAA###")]
         public required string OrderId { get; init; }
 
         public required DateTime OrderTime { get; init; }
-        public required OrderStatus Status { get; init; }
         public required string CustomerName { get; init; }
 
         [Format("(###) ###-####")]
         public required string PhoneNumber { get; init; }
 
         public required Address DeliveryAddress { get; init; }
+    }
+
+    public class OrderItems
+    {
+        [Description("The the order identifier")]
+        [Format("AAA###")]
+        public required string OrderId { get; init; }
+
         public required MenuItem[] Items { get; init; }
         public required decimal TotalAmount { get; init; }
 
         [AllowedValues("cash", "credit", "debit")]
         public required string PaymentMethod { get; init; }
+        public required OrderStatus Status { get; init; }
     }
     
     
@@ -48,7 +59,7 @@ internal class ParseComplexRestaurantOrder : ITestRoutine
 
     public class Address
     {
-        [Description("The full delivery address Line, made up of the primary address number, predirectional, street name, suffix, postdirectional, secondary address identifier, and secondary address. You must not include City, State, or ZipCode")]
+        [Description("The delivery address line, made up of the primary address number, predirectional, street name, suffix, postdirectional, secondary address identifier, and secondary address. You must not include City, State, and ZipCode.")]
         public required string FullStreetAddress { get; init; }
         public required string City { get; init; }
         [AllowedValues("CA", "NY", "TX")] 
@@ -75,44 +86,51 @@ internal class ParseComplexRestaurantOrder : ITestRoutine
 
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
+        if (model.IsThinkingModel()) return; // it'll be fine, just lazy
+        
         var executor = new StatelessExecutor(model, parameters);
-        const string prompt = """
-                              Parse this restaurant order. When extracting the address, follow these rules:
-                              
-                              * City, State and Zip are their own fields
-                              * FullStreetAddress is the address without City, State and Zip. 
-                              
-                              ```
-                              Alright, I've got order number RTH789 here from Sarah Johnson. She placed it around 6:30 PM on January 27th 2024. It's currently being prepared and will be delivered to her apartment - that's 789 Oak Road, Apartment 4B in San Francisco, 94110. She left her phone number as (555) 123-4567.
-                              
-                              For the food, she ordered two spicy Pad Thais - those are $15.99 each. She wanted rice and noodles on the side for those, and mentioned they need to be gluten-free. She also got one Green Curry with extra spice for $18.99, just rice on the side for that one. The curry needs to be dairy-free and nut-free.
-                              
-                              Total comes to $50.97, and she paid with a credit card.
-                              ```
-                              
-                              """;
 
-        Order order;
-        if (!model.IsThinkingModel())
-        {
-            order = await executor.InferAsync<Order>(prompt, JsonContext.Default, TypeModelContext.Default);
-        }
-        else
-        {
-            (order, _) = (await executor.InferWithThoughtsAsync<Order>(prompt, JsonContext.Default, TypeModelContext.Default));
-        }
+        const string orderText = """
+                                 Alright, I've got order number RTH789 here from Sarah Johnson. She placed it around 6:30 PM on January 27th 2024. It's currently being prepared and will be delivered to her apartment - that's 789 Oak Road, Apartment 4B in San Francisco, 94110. She left her phone number as (555) 123-4567.
 
+                                 For the food, she ordered two spicy Pad Thais - those are $15.99 each. She wanted rice and noodles on the side for those, and mentioned they need to be gluten-free. She also got one Green Curry with extra spice for $18.99, just rice on the side for that one. The curry needs to be dairy-free and nut-free.
 
-        order.ShouldAllBe([
+                                 Total comes to $50.97, and she paid with a credit card.
+                                 """;
+        
+        const string extractCustomerPrompt = $"""
+                                              Extract the customer information from this order:
+
+                                              ```
+                                              {orderText}
+                                              ```
+                                              """;
+
+        const string extractItemsPrompt = $"""
+                                           Extract the ordered items from this order:
+
+                                           ```
+                                           {orderText}
+                                           ```
+                                           """;
+        
+        var orderCustomer = await executor.InferAsync<OrderCustomer>(extractCustomerPrompt, JsonContext.Default, TypeModelContext.Default);
+        var orderItems = await executor.InferAsync<OrderItems>(extractItemsPrompt, JsonContext.Default, TypeModelContext.Default);
+        
+        orderCustomer.ShouldAllBe([
             o => o.OrderId.ShouldBe("RTH789"),
             o => o.OrderTime.ShouldBe(new DateTime(2024, 1, 27, 18, 30, 0)),
-            o => o.Status.ShouldBe(OrderStatus.Preparing),
+            o => o.DeliveryAddress.FullStreetAddress.ShouldBe("789 Oak Road, Apartment 4B"),
             o => o.CustomerName.ShouldBe("Sarah Johnson"),
             o => o.PhoneNumber.ShouldBe("(555) 123-4567"),
-            o => o.DeliveryAddress.FullStreetAddress.ShouldBe("789 Oak Road, Apartment 4B"),
             o => o.DeliveryAddress.City.ShouldBe("San Francisco"),
             o => o.DeliveryAddress.State.ShouldBe("CA"),
             o => o.DeliveryAddress.ZipCode.ShouldBe("94110"),
+        ]);
+        
+        orderItems.ShouldAllBe([
+            o => o.OrderId.ShouldBe("RTH789"),
+            o => o.Status.ShouldBe(OrderStatus.Preparing),
             o => o.TotalAmount.ShouldBe(50.97m),
             o => o.PaymentMethod.ShouldBe("credit"),
             o => o.Items.Length.ShouldBe(2),

@@ -8,6 +8,7 @@ using LLama;
 using LLama.Abstractions;
 using LLama.Common;
 using LLama.Sampling;
+using RedPajama.ConsoleTest.TestRoutines;
 
 namespace RedPajama.ConsoleTest;
 
@@ -79,7 +80,9 @@ public static class ExecutorExtensions
         
         var gbnfGenerator = new GbnfGenerator();
         var jsonSampleGenerator = new JsonSampleGenerator();
-        
+
+        var typeb = new TypeModelBuilder<ParseComplexRestaurantOrder.Order>();
+        var otherGbnf = typeb.Build();
         var gbnf = gbnfGenerator.Generate(typeModelBuilder);
         var jsonSample = jsonSampleGenerator.Generate(typeModelBuilder);
         var sampleInstructions = jsonSampleGenerator.SampleInstructions();
@@ -117,7 +120,7 @@ public static class ExecutorExtensions
         var promptWithSample = $"""
                                 {prompt}
 
-                                Return results as valid JSON in the following format:
+                                RESPONSE FORMAT:
                                 {jsonSample}
 
                                 {sampleInstructions}

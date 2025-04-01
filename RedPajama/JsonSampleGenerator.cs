@@ -73,15 +73,16 @@ public class JsonSampleGenerator
             TypeModel complexType => GenerateComplexType(complexType, indentLevel),
             ArrayTypeModel arrayType => GenerateArray(arrayType, propName, indentLevel),
             EnumTypeModel enumType => GenerateEnum(enumType),
-            BoolTypeModel => AsTemplate($"\"true or value value of {propName}\""),
-            StringTypeModel => AsTemplate($"\"string value of {propName}\""),
+            BoolTypeModel => AsTemplate($"true or false value of {propName}"),
+            StringTypeModel stringTypeModel => AsTemplate(GetFormatDescription(stringTypeModel, propName)),
             IntegerTypeModel => AsTemplate($"integer value of {propName}"),
             DecimalTypeModel => AsTemplate($"decimal value of {propName}"),
-            GuidTypeModel => AsTemplate($"\"Guid value of {propName}\""),
-            DateTypeModel => AsTemplate($"\"ISO 8601 format date value of {propName}\""),
+            GuidTypeModel => AsTemplate($"GUID value in standard format for {propName}"),
+            DateTypeModel => AsTemplate($"ISO 8601 date value for {propName} (YYYY-MM-DDThh:mm:ss.sssZ)"),
             _ => throw new ArgumentException($"Unsupported type: {type.GetType().Name}")
         };
     }
+
 
     private string GenerateComplexType(TypeModel type, int indentLevel)
     {
@@ -142,16 +143,21 @@ public class JsonSampleGenerator
 
     private string GenerateArrayPlaceholder(BaseTypeModel type, string index, string propName)
     {
+        string indexedPropName = $"{propName}_{index}";
+
         return type switch
         {
-            StringTypeModel => AsTemplate($"\"{propName}_{index}\""),
-            IntegerTypeModel => AsTemplate($"{propName}_{index}"),
-            DecimalTypeModel => AsTemplate($"{propName}_{index}"),
-            BoolTypeModel => AsTemplate($"{propName}_{index}"),
-            DateTypeModel => AsTemplate($"\"{propName}_{index}\""),
+            StringTypeModel stringTypeModel =>
+                stringTypeModel.Format != null
+                    ? AsTemplate($"\"{GetFormatDescription(stringTypeModel, indexedPropName)}\"")
+                    : AsTemplate($"\"{indexedPropName}\""),
+            IntegerTypeModel => AsTemplate($"{indexedPropName}"),
+            DecimalTypeModel => AsTemplate($"{indexedPropName}"),
+            BoolTypeModel => AsTemplate($"{indexedPropName}"),
+            DateTypeModel => AsTemplate($"\"{indexedPropName}\""),
             EnumTypeModel => AsTemplate($"\"{propName}_{index}\""),
-            GuidTypeModel => AsTemplate($"\"{propName}_{index}\""),
-            _ => $"{propName}_{index}"
+            GuidTypeModel => AsTemplate($"\"{indexedPropName}\""),
+            _ => $"{indexedPropName}"
         };
     }
 
@@ -171,6 +177,73 @@ public class JsonSampleGenerator
         // If we have allowed values, generate them as an enum-style list
         var values = string.Join("|", stringTypeModel.AllowedValues);
         return AsTemplate($"\"{values}\"");
+    }
+
+    private string GetFormatDescription(StringTypeModel stringTypeModel, string propName)
+    {
+        if (string.IsNullOrEmpty(stringTypeModel.Format))
+            return $"string value of {propName}";
+
+        // Extract the format
+        var format = stringTypeModel.Format;
+
+        // Handle the different format types
+        if (format.StartsWith("gbnf:"))
+        {
+            // For raw GBNF, we'll provide a simplified description
+            return $"string value of {propName} in custom format";
+        }
+
+        switch (format)
+        {
+            // Predefined formats
+            case "email":
+                return $"email address for {propName} (e.g., user@example.com)";
+
+            case "guid":
+            case "uuid":
+                return $"UUID for {propName} (e.g., 123e4567-e89b-12d3-a456-426614174000)";
+
+            case "date":
+                return $"date for {propName} in YYYY-MM-DD format (e.g., 2023-12-31)";
+
+            case "time":
+                return $"time for {propName} in HH:MM:SS format (e.g., 14:30:45)";
+
+            case "phone-us":
+                return $"US phone number for {propName} in (XXX) XXX-XXXX format";
+
+            case "alpha":
+                return $"alphabetic string for {propName} (letters only)";
+
+            case "alpha-space":
+                return $"string for {propName} containing only letters and spaces";
+
+            case "alphanumeric":
+                return $"alphanumeric string for {propName} (letters and numbers only)";
+
+            case "lowercase":
+                return $"lowercase string for {propName}";
+
+            case "uppercase":
+                return $"uppercase string for {propName}";
+
+            case "numeric":
+                return $"string of digits for {propName}";
+
+            case "hex":
+                return $"hexadecimal string for {propName}";
+
+            default:
+                // For pattern-based formats
+                if (format.Contains('#') || format.Contains('A') || format.Contains('a') || format.Contains('9'))
+                {
+                    return $"string for {propName} in the format: {format}";
+                }
+
+                // Default case if we don't recognize the format
+                return $"string value of {propName} in {format} format";
+        }
     }
 
     private string GenerateComment(PropertyModel propertyModel)

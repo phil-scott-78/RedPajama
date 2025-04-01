@@ -84,7 +84,6 @@ namespace RedPajama.SourceGenerator
         private static TypeModelContextData GetTypeModelContextData(GeneratorAttributeSyntaxContext context)
         {
             var modelTypes = new List<TypeRegistration>();
-            var diagnostics = new List<Diagnostic>();
 
             // Process each attribute
             var attributeDatas = context.Attributes
@@ -103,7 +102,7 @@ namespace RedPajama.SourceGenerator
                 }
 
                 // Try to get the attribute location for better error reporting
-                Location location = attributeData.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? Location.None;
+                var location = attributeData.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? Location.None;
                 
                 modelTypes.Add(new TypeRegistration(typeArg.ToDisplayString(), customName, typeArg) 
                 {
@@ -128,7 +127,7 @@ namespace RedPajama.SourceGenerator
                     accessibility,
                     classSymbol.Name,
                     classSymbol.ContainingNamespace.ToDisplayString(),
-                    modelTypes)
+                    modelTypes.ToImmutableList())
                 : null;
         }
 
@@ -145,18 +144,11 @@ namespace RedPajama.SourceGenerator
             var validContexts = new List<TypeModelContextData>();
 
             // First pass: validate each context individually and collect file names
-            foreach (var typeModelContext in typeModelContexts)
+            var typeModelContextDatas = typeModelContexts
+                .Where(typeModelContext => ValidateTypeRegistrations(typeModelContext, context));
+            
+            foreach (var typeModelContext in typeModelContextDatas)
             {
-                if (typeModelContext == null)
-                    continue;
-
-                // Validate the type registrations for duplicate names before code generation
-                if (!ValidateTypeRegistrations(typeModelContext, context))
-                {
-                    // Skip generating code for this context if validation failed
-                    continue;
-                }
-                
                 validContexts.Add(typeModelContext);
                 
                 // Check for file name conflicts between different context classes
@@ -255,7 +247,7 @@ namespace RedPajama.SourceGenerator
         
         private static bool ValidateTypeRegistrations(TypeModelContextData typeModelContext, SourceProductionContext context)
         {
-            bool isValid = true;
+            var isValid = true;
             
             // Check for duplicate type names (when custom name is not provided)
             var typesBySimpleName = new Dictionary<string, List<TypeRegistration>>();
@@ -265,7 +257,7 @@ namespace RedPajama.SourceGenerator
             
             foreach (var typeReg in typeModelContext.ModelTypes)
             {
-                string simpleName = GetSimpleTypeName(typeReg.FullType);
+                var simpleName = GetSimpleTypeName(typeReg.FullType);
                 
                 // If custom name is not specified, use the simple type name
                 if (string.IsNullOrEmpty(typeReg.CustomName))
@@ -348,10 +340,9 @@ namespace RedPajama.SourceGenerator
             indentedWriter.Indent++;
 
             // Generate properties for each type model
-            foreach (var model in data.ModelTypes)
+            foreach (var (typeName, customName, _) in data.ModelTypes)
             {
-                var typeName = model.FullType;
-                var propertyName = model.CustomName ?? GetSimpleTypeName(typeName);
+                var propertyName = customName ?? GetSimpleTypeName(typeName);
 
                 indentedWriter.WriteLine($"/// <summary>");
                 indentedWriter.WriteLine($"/// Gets the TypeModel for {typeName}");
@@ -379,10 +370,9 @@ namespace RedPajama.SourceGenerator
             indentedWriter.Indent++;
 
             // Add conditions for each registered type
-            foreach (var model in data.ModelTypes)
+            foreach (var (typeName, customName, _) in data.ModelTypes)
             {
-                var typeName = model.FullType;
-                var propertyName = model.CustomName ?? GetSimpleTypeName(typeName);
+                var propertyName = customName ?? GetSimpleTypeName(typeName);
 
                 indentedWriter.WriteLine($"if (typeof(T) == typeof({typeName})) return {propertyName};");
             }
@@ -440,7 +430,7 @@ namespace RedPajama.SourceGenerator
             var propertyName = typeReg.CustomName ?? GetSimpleTypeName(typeName);
 
             // Process the type and generate all required helper methods directly to the writer
-            typeProcessor.ProcessType(typeReg.TypeSymbol, contextData, indentedWriter);
+            typeProcessor.ProcessType(typeReg.TypeSymbol, indentedWriter);
 
             // Generate the builder method
             indentedWriter.WriteLine($"private TypeModel {propertyName}Builder()");
@@ -464,13 +454,6 @@ namespace RedPajama.SourceGenerator
             }
 
             return stringBuilder.ToString();
-        }
-
-        private static string GetSimpleTypeName(string fullTypeName)
-        {
-            // Extract the last part of the namespace-qualified name
-            var lastDot = fullTypeName.LastIndexOf('.');
-            return lastDot >= 0 ? fullTypeName.Substring(lastDot + 1) : fullTypeName;
         }
 
         private static void RegisterAttributes(IncrementalGeneratorPostInitializationContext context)
@@ -551,6 +534,13 @@ namespace RedPajama.SourceGenerator
             indentedWriter.WriteLine("}");
 
             context.AddSource("PajamaTypeModelAttribute.g.cs", SourceText.From(stringBuilder.ToString(), Encoding.UTF8));
+        }
+        
+        private static string GetSimpleTypeName(string fullTypeName)
+        {
+            // Extract the last part of the namespace-qualified name
+            var lastDot = fullTypeName.LastIndexOf('.');
+            return lastDot >= 0 ? fullTypeName.Substring(lastDot + 1) : fullTypeName;
         }
     }
 }

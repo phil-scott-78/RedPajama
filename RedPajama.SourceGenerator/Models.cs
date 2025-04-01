@@ -1,14 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 
 namespace RedPajama.SourceGenerator
 {
-    internal record TypeProcessingResult(List<string> HelperMethods, string BuilderCode)
-    {
-        public List<string> HelperMethods { get; } = HelperMethods;
-        public string BuilderCode { get; } = BuilderCode;
-    }
-    
     internal record TypeRegistration(string FullType, string CustomName, ITypeSymbol TypeSymbol)
     {
         public string FullType { get; } = FullType;
@@ -23,11 +18,12 @@ namespace RedPajama.SourceGenerator
         string Accessibility,
         string ClassName,
         string Namespace,
-        List<TypeRegistration> ModelTypes)
+        ImmutableList<TypeRegistration> ModelTypes)
     {
         public string Accessibility { get; } = Accessibility;
         public string ClassName { get; } = ClassName;
         public string Namespace { get; } = Namespace;
-        public List<TypeRegistration> ModelTypes { get; } = ModelTypes;
+        
+        public ImmutableList<TypeRegistration> ModelTypes { get; } = ModelTypes;
     }
 }

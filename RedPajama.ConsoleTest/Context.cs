@@ -14,6 +14,8 @@ namespace RedPajama.ConsoleTest;
 [PajamaTypeModel(typeof(ParseOrderStatus.Order), "ParseOrderStatusOrder")]
 [PajamaTypeModel(typeof(ParseTags.BlogPost))]
 [PajamaTypeModel(typeof(BatchedOperation.Answer))]
+[PajamaTypeModel(typeof(ParseComplexRestaurantOrderInParts.OrderCustomer))]
+[PajamaTypeModel(typeof(ParseComplexRestaurantOrderInParts.OrderItems))]
 internal partial class TypeModelContext : PajamaTypeModelContext
 {
     
@@ -31,6 +33,13 @@ internal partial class TypeModelContext : PajamaTypeModelContext
 [JsonSerializable(typeof(ParseOrderStatus.OrderStatus), TypeInfoPropertyName = "ParseOrderStatusOrderStatus")]
 [JsonSerializable(typeof(ParseTags.BlogPost))]
 [JsonSerializable(typeof(BatchedOperation.Answer))]
+[JsonSerializable(typeof(ParseComplexRestaurantOrderInParts.OrderCustomer),  TypeInfoPropertyName = "ParseComplexRestaurantOrderInPartsOrderCustomer")]
+[JsonSerializable(typeof(ParseComplexRestaurantOrderInParts.Address),  TypeInfoPropertyName = "ParseComplexRestaurantOrderInPartsAddress")]
+[JsonSerializable(typeof(ParseComplexRestaurantOrderInParts.OrderStatus),  TypeInfoPropertyName = "ParseComplexRestaurantOrderInPartsOrderStatus")]
+[JsonSerializable(typeof(ParseComplexRestaurantOrderInParts.MenuItem),  TypeInfoPropertyName = "ParseComplexRestaurantOrderInPartsMenuItemsArray")]
+[JsonSerializable(typeof(ParseComplexRestaurantOrderInParts.MenuItem[]),  TypeInfoPropertyName = "ParseComplexRestaurantOrderInPartsMenuItems")]
+[JsonSerializable(typeof(ParseComplexRestaurantOrderInParts.SpiceLevel),  TypeInfoPropertyName = "ParseComplexRestaurantOrderInPartsSpiceLevel")]
+[JsonSerializable(typeof(ParseComplexRestaurantOrderInParts.OrderItems),  TypeInfoPropertyName = "ParseComplexRestaurantOrderInPartsOrderItems")]
 [JsonSourceGenerationOptions(UseStringEnumConverter = true)]
 internal partial class JsonContext : JsonSerializerContext
 {
