@@ -16,7 +16,7 @@ internal class ParseEmailAndExtractGuid : ITestRoutine
    
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters);
+        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
 
         var prompt = """
                      Extract the user details from this email notification:

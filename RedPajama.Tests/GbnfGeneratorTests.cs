@@ -80,7 +80,7 @@ public class GbnfGeneratorTests
             root ::= "{" space root-text-kv "," space root-number-kv "," space root-amount-kv "," space root-date-kv "}" space
             """;
 
-        grammar.ShouldContainWithoutWhitespace(expected);
+        grammar.ShouldBeEquivalentGrammar(expected);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class GbnfGeneratorTests
             root ::= "{" space root-texts-kv "," space root-numbers-kv "}" space
             """;
 
-        grammar.ShouldContainWithoutWhitespace(expected);
+        grammar.ShouldBeEquivalentGrammar(expected);
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public class GbnfGeneratorTests
             root ::= "{" space root-status-kv "}" space
             """;
 
-        grammar.ShouldContainWithoutWhitespace(expected);
+        grammar.ShouldBeEquivalentGrammar(expected);
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public class GbnfGeneratorTests
             root ::= "{" space root-category-kv "}" space
             """;
 
-        grammar.ShouldContainWithoutWhitespace(expected);
+        grammar.ShouldBeEquivalentGrammar(expected);
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public class GbnfGeneratorTests
             root ::= "{" space root-name-kv "," space root-address-kv "}" space
             """;
 
-        grammar.ShouldContainWithoutWhitespace(expected);
+        grammar.ShouldBeEquivalentGrammar(expected);
     }
 
     [Fact]
@@ -189,7 +189,7 @@ public class GbnfGeneratorTests
             root ::= "{" space root-text-kv "}" space
             """;
 
-        grammar.ShouldContainWithoutWhitespace(expected);
+        grammar.ShouldBeEquivalentGrammar(expected);
     }
     
     public class EmptyType { }
@@ -210,6 +210,26 @@ public class GbnfGeneratorTests
             root ::= "{" space "}" space
             """;
 
-        grammar.ShouldContainWithoutWhitespace(expected);
+        grammar.ShouldBeEquivalentGrammar(expected);
+    }
+}
+
+[ShouldlyMethods]
+internal static class ShouldlyExtensions
+{
+    public static void ShouldBeEquivalentGrammar(this string actual, string expected)
+    {
+        // 
+        var actualLines = actual
+            .ReplaceLineEndings()
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(i => i.Replace(" ", ""));
+        
+        var expectedLines = expected
+            .ReplaceLineEndings()
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(i => i.Replace(" ", ""));
+        
+        actualLines.ShouldBe(expectedLines, ignoreOrder:true);
     }
 }

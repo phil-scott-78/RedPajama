@@ -78,7 +78,7 @@ foreach (var modelFile in models)
 {
     var parameters = new ModelParams(modelFile)
     {
-        ContextSize = 2000,
+        ContextSize = 1000,
         GpuLayerCount = -1,
     };
 

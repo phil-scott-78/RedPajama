@@ -88,7 +88,7 @@ internal class ParseComplexRestaurantOrderInParts : ITestRoutine
     {
         if (model.IsThinkingModel()) return; // it'll be fine, just lazy
         
-        var executor = new StatelessExecutor(model, parameters);
+        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
 
         const string orderText = """
                                  Alright, I've got order number RTH789 here from Sarah Johnson. She placed it around 6:30 PM on January 27th 2024. It's currently being prepared and will be delivered to her apartment - that's 789 Oak Road, Apartment 4B in San Francisco, 94110. She left her phone number as (555) 123-4567.

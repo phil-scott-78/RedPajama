@@ -27,7 +27,7 @@ internal class ParseNestedAddress : ITestRoutine
    
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters);
+        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
         const string prompt = """
                               Extract the customer name and addresses from this order:
                               ```

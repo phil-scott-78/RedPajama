@@ -7,6 +7,7 @@ namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseComplexRestaurantOrder : ITestRoutine
 {
+
     public class Order
     {
         [Description("The the order identifier")]
@@ -75,7 +76,7 @@ internal class ParseComplexRestaurantOrder : ITestRoutine
 
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters);
+        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
         const string prompt = """
                               Parse this restaurant order. When extracting the address, follow these rules:
                               
@@ -89,7 +90,6 @@ internal class ParseComplexRestaurantOrder : ITestRoutine
                               
                               Total comes to $50.97, and she paid with a credit card.
                               ```
-                              
                               """;
 
         Order order;

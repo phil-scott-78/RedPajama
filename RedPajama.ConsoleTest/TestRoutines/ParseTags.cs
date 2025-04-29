@@ -5,17 +5,17 @@ using LLama.Abstractions;
 namespace RedPajama.ConsoleTest.TestRoutines;
 
 internal class ParseTags : ITestRoutine
-{    
+{
     [UsedImplicitly(ImplicitUseTargetFlags.Members)]
     public class BlogPost
     {
         public required string Title { get; init; }
         public required string[] Tags { get; init; }
     }
-   
+
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters){ApplyTemplate = true};
+        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
         const string prompt = """
                               Extract the title and tags from this blog post:
                               ```
@@ -23,7 +23,7 @@ internal class ParseTags : ITestRoutine
                               Tags: #ai #programming #python #tutorial
                               ```
                               """;
-        
+
         BlogPost post;
         if (!model.IsThinkingModel())
         {
@@ -31,7 +31,8 @@ internal class ParseTags : ITestRoutine
         }
         else
         {
-            (post, _) = await executor.InferWithThoughtsAsync<BlogPost>(prompt, JsonContext.Default, TypeModelContext.Default);
+            (post, _) = await executor.InferWithThoughtsAsync<BlogPost>(prompt, JsonContext.Default,
+                TypeModelContext.Default);
         }
 
         post.ShouldAllBe([

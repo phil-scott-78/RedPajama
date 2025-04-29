@@ -73,12 +73,12 @@ public class JsonSampleGenerator
             TypeModel complexType => GenerateComplexType(complexType, indentLevel),
             ArrayTypeModel arrayType => GenerateArray(arrayType, propName, indentLevel),
             EnumTypeModel enumType => GenerateEnum(enumType),
-            BoolTypeModel => AsTemplate($"true or false value of {propName}"),
-            StringTypeModel stringTypeModel => AsTemplate(GetFormatDescription(stringTypeModel, propName)),
-            IntegerTypeModel => AsTemplate($"integer value of {propName}"),
-            DecimalTypeModel => AsTemplate($"decimal value of {propName}"),
-            GuidTypeModel => AsTemplate($"GUID value in standard format for {propName}"),
-            DateTypeModel => AsTemplate($"ISO 8601 date value for {propName} (YYYY-MM-DDThh:mm:ss.sssZ)"),
+            BoolTypeModel => AsTemplate($"true or false"),
+            StringTypeModel stringTypeModel => "\"" + AsTemplate(GetFormatDescription(stringTypeModel, propName)) + "\"",
+            IntegerTypeModel => AsTemplate($"integer value"),
+            DecimalTypeModel => AsTemplate($"decimal value"),
+            GuidTypeModel => AsTemplate($"GUID value in standard format"),
+            DateTypeModel => AsTemplate($"ISO 8601 date value (YYYY-MM-DDThh:mm:ss.sssZ)"),
             _ => throw new ArgumentException($"Unsupported type: {type.GetType().Name}")
         };
     }
@@ -182,7 +182,7 @@ public class JsonSampleGenerator
     private string GetFormatDescription(StringTypeModel stringTypeModel, string propName)
     {
         if (string.IsNullOrEmpty(stringTypeModel.Format))
-            return $"string value of {propName}";
+            return $"string value";
 
         // Extract the format
         var format = stringTypeModel.Format;
@@ -191,58 +191,58 @@ public class JsonSampleGenerator
         if (format.StartsWith("gbnf:"))
         {
             // For raw GBNF, we'll provide a simplified description
-            return $"string value of {propName} in custom format";
+            return $"string value in custom format";
         }
 
         switch (format)
         {
             // Predefined formats
             case "email":
-                return $"email address for {propName} (e.g., user@example.com)";
+                return $"email address (e.g., user@example.com)";
 
             case "guid":
             case "uuid":
-                return $"UUID for {propName} (e.g., 123e4567-e89b-12d3-a456-426614174000)";
+                return $"UUID (e.g., 123e4567-e89b-12d3-a456-426614174000)";
 
             case "date":
-                return $"date for {propName} in YYYY-MM-DD format (e.g., 2023-12-31)";
+                return $"date in YYYY-MM-DD format (e.g., 2023-12-31)";
 
             case "time":
-                return $"time for {propName} in HH:MM:SS format (e.g., 14:30:45)";
+                return $"time in HH:MM:SS format (e.g., 14:30:45)";
 
             case "phone-us":
-                return $"US phone number for {propName} in (XXX) XXX-XXXX format";
+                return $"US phone number in (XXX) XXX-XXXX format";
 
             case "alpha":
-                return $"alphabetic string for {propName} (letters only)";
+                return $"alphabetic string (letters only)";
 
             case "alpha-space":
-                return $"string for {propName} containing only letters and spaces";
+                return $"string containing only letters and spaces";
 
             case "alphanumeric":
-                return $"alphanumeric string for {propName} (letters and numbers only)";
+                return $"alphanumeric string (letters and numbers only)";
 
             case "lowercase":
-                return $"lowercase string for {propName}";
+                return $"lowercase string";
 
             case "uppercase":
-                return $"uppercase string for {propName}";
+                return $"uppercase string";
 
             case "numeric":
-                return $"string of digits for {propName}";
+                return $"string of digits ";
 
             case "hex":
-                return $"hexadecimal string for {propName}";
+                return $"hexadecimal string";
 
             default:
                 // For pattern-based formats
                 if (format.Contains('#') || format.Contains('A') || format.Contains('a') || format.Contains('9'))
                 {
-                    return $"string for {propName} in the format: {format}";
+                    return $"string in the format: {format}";
                 }
 
                 // Default case if we don't recognize the format
-                return $"string value of {propName} in {format} format";
+                return $"string value in {format} format";
         }
     }
 

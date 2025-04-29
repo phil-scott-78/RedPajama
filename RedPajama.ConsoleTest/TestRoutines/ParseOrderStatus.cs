@@ -13,8 +13,8 @@ internal class ParseOrderStatus : ITestRoutine
         [Description("Time in UTC")] public required DateTimeOffset LastUpdated { get; init; }
         public required decimal Balance { get; init; }
     }
-    
-            
+
+
     public enum OrderStatus
     {
         Pending,
@@ -26,7 +26,7 @@ internal class ParseOrderStatus : ITestRoutine
 
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters);
+        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
         const string prompt = """
                               Extract the order ID, status and last update time from this notification:
                               ```
@@ -41,7 +41,8 @@ internal class ParseOrderStatus : ITestRoutine
         }
         else
         {
-            (order, _) = (await executor.InferWithThoughtsAsync<Order>(prompt, JsonContext.Default, TypeModelContext.Default));
+            (order, _) =
+                (await executor.InferWithThoughtsAsync<Order>(prompt, JsonContext.Default, TypeModelContext.Default));
         }
 
         order.ShouldAllBe([

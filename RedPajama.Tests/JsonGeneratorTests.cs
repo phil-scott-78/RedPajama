@@ -90,10 +90,10 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                               "Text": "⟨string value of Text⟩",
-                               "Number": ⟨integer value of Number⟩,
-                               "Amount": ⟨decimal value of Amount⟩,
-                               "Date": "⟨ISO 8601 format date value of Date⟩"
+                               "Text": "⟨string value⟩",
+                               "Number": ⟨integer value⟩,
+                               "Amount": ⟨decimal value⟩,
+                               "Date": ⟨ISO 8601 date value (YYYY-MM-DDThh:mm:ss.sssZ)⟩
                            }
                            """;
         json.ShouldContainWithoutWhitespace(expectedJson);
@@ -111,8 +111,8 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                               "Texts": ["⟨string value of Texts_1⟩", "⟨Texts_2⟩", "⟨Texts_N⟩"],
-                               "Numbers": [⟨integer value of Numbers_1⟩, ⟨Numbers_2⟩, ⟨Numbers_N⟩]
+                               "Texts": ["⟨string value_1⟩", "⟨Texts_2⟩", "⟨Texts_N⟩"],
+                               "Numbers": [⟨integer value_1⟩, ⟨Numbers_2⟩, ⟨Numbers_N⟩]
                            }
                            """;
         json.ShouldContainWithoutWhitespace(expectedJson);
@@ -150,7 +150,7 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                               "Name": "⟨string value of Name⟩" // User's full name
+                               "Name": "⟨string value⟩" // User's full name
                            }
                            """;
         json.ShouldContainWithoutWhitespace(expectedJson);
@@ -188,10 +188,10 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                               "Name": "⟨string value of Name⟩",
+                               "Name": "⟨string value⟩",
                                "Address": {
-                                   "Street": "⟨string value of Street⟩",
-                                   "City": "⟨string value of City⟩"
+                                   "Street": "⟨string value⟩",
+                                   "City": "⟨string value⟩"
                                }
                            }
                            """;
@@ -211,8 +211,8 @@ public class JsonSampleGeneratorTests
         var expectedJson = """
                            {
                                "Items": [{
-                                   "Name": "⟨string value of Name⟩",
-                                   "Price": ⟨decimal value of Price⟩
+                                   "Name": "⟨string value⟩",
+                                   "Price": ⟨decimal value⟩
                                }, Items_2, Items_N]
                            }
                            """;
@@ -230,7 +230,7 @@ public class JsonSampleGeneratorTests
 
         // Assert
         var expectedJson = """
-                           {"Name": "⟨string value of Name⟩","Age": ⟨integer value of Age⟩}
+                           {"Name": "⟨string value⟩","Age": ⟨integer value⟩}
                            """;
         json.ShouldBe(expectedJson);
     }
@@ -265,8 +265,8 @@ public class JsonSampleGeneratorTests
         // Assert
         var expectedJson = """
                            {
-                           	"Name": "⟨string value of Name⟩",
-                           	"Age": ⟨integer value of Age⟩
+                           	"Name": "⟨string value⟩",
+                           	"Age": ⟨integer value⟩
                            }
                            """;
         json.ShouldBe(expectedJson, StringCompareShould.IgnoreLineEndings);

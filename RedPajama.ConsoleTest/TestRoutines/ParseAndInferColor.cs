@@ -10,13 +10,14 @@ internal class ParseAndInferColor : ITestRoutine
     {
         public required string Item { get; init; }
         public required string Description { get; init; }
+
         [AllowedValues("red", "orange", "yellow", "green", "blue", "purple")]
         public required string Color { get; init; }
     }
-   
+
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters);
+        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
 
         var prompt = """
                      Extract the item details and infer the color of the item:
@@ -25,7 +26,7 @@ internal class ParseAndInferColor : ITestRoutine
                      Description: A ripe, bright-colored curved fruit with a thick peel
                      ```
                      """;
-        
+
         ColorDescription color;
         if (!model.IsThinkingModel())
         {
@@ -33,13 +34,15 @@ internal class ParseAndInferColor : ITestRoutine
         }
         else
         {
-            (color, _) = (await executor.InferWithThoughtsAsync<ColorDescription>(prompt, JsonContext.Default, TypeModelContext.Default));
+            (color, _) =
+                (await executor.InferWithThoughtsAsync<ColorDescription>(prompt, JsonContext.Default,
+                    TypeModelContext.Default));
         }
 
         color.ShouldAllBe([
             i => i.Item.ShouldBe("Fresh Banana"),
             i => i.Description.ShouldBe("A ripe, bright-colored curved fruit with a thick peel"),
-            i => i.Color.ShouldBe("yellow")  // LLM should infer yellow as the appropriate rainbow color for a banana
+            i => i.Color.ShouldBe("yellow") // LLM should infer yellow as the appropriate rainbow color for a banana
         ]);
     }
 }
