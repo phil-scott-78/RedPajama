@@ -183,15 +183,22 @@ public class JsonSampleGenerator
     {
         if (stringTypeModel.MaxLength.HasValue || stringTypeModel.MinLength.HasValue)
         {
-            switch (stringTypeModel)
+            return stringTypeModel switch
             {
-                case { MaxLength: null, MinLength: not null}:
-                    return $"string value of at least {stringTypeModel.MinLength} characters";
-                case { MaxLength: not null, MinLength: null }:
-                    return $"string value of no more than {stringTypeModel.MaxLength} characters";
-                case { MaxLength: not null, MinLength: not null }:
-                    return $"string value between {stringTypeModel.MinLength} and {stringTypeModel.MaxLength} characters";
-            }
+                { MaxLength: null, MinLength: not null } => 
+                    $"string value of at least {stringTypeModel.MinLength} characters",
+    
+                { MaxLength: not null, MinLength: null } => 
+                    $"string value of no more than {stringTypeModel.MaxLength} characters",
+    
+                { MaxLength: var max, MinLength: var min } when max == min => 
+                    $"string value exactly {min}",
+    
+                { MaxLength: var max, MinLength: var min } => 
+                    $"string value between {min} and {max} characters",
+    
+                _ => "string value" // Default case if none of the patterns match
+            };
         }
 
         if (string.IsNullOrEmpty(stringTypeModel.Format))
