@@ -73,12 +73,12 @@ public class JsonSampleGenerator
             TypeModel complexType => GenerateComplexType(complexType, indentLevel),
             ArrayTypeModel arrayType => GenerateArray(arrayType, propName, indentLevel),
             EnumTypeModel enumType => GenerateEnum(enumType),
-            BoolTypeModel => AsTemplate($"true or false"),
+            BoolTypeModel => AsTemplate("true or false"),
             StringTypeModel stringTypeModel => "\"" + AsTemplate(GetFormatDescription(stringTypeModel, propName)) + "\"",
-            IntegerTypeModel => AsTemplate($"integer value"),
-            DecimalTypeModel => AsTemplate($"decimal value"),
-            GuidTypeModel => AsTemplate($"GUID value in standard format"),
-            DateTypeModel => AsTemplate($"ISO 8601 date value (YYYY-MM-DDThh:mm:ss.sssZ)"),
+            IntegerTypeModel => AsTemplate("integer value"),
+            DecimalTypeModel => AsTemplate("decimal value"),
+            GuidTypeModel => AsTemplate("GUID value in standard format"),
+            DateTypeModel => AsTemplate("ISO 8601 date value (YYYY-MM-DDThh:mm:ss.sssZ)"),
             _ => throw new ArgumentException($"Unsupported type: {type.GetType().Name}")
         };
     }
@@ -192,7 +192,7 @@ public class JsonSampleGenerator
                     $"string value of no more than {stringTypeModel.MaxLength} characters",
     
                 { MaxLength: var max, MinLength: var min } when max == min => 
-                    $"string value exactly {min}",
+                    $"string value exactly {min} characters",
     
                 { MaxLength: var max, MinLength: var min } => 
                     $"string value between {min} and {max} characters",
@@ -214,48 +214,48 @@ public class JsonSampleGenerator
         if (format.StartsWith("gbnf:"))
         {
             // For raw GBNF, we'll provide a simplified description
-            return $"string value in custom format";
+            return "string value";
         }
 
         switch (format)
         {
             // Predefined formats
             case "email":
-                return $"email address (e.g., user@example.com)";
+                return "email address (e.g., user@example.com)";
 
             case "guid":
             case "uuid":
-                return $"UUID (e.g., 123e4567-e89b-12d3-a456-426614174000)";
+                return "UUID (e.g., 123e4567-e89b-12d3-a456-426614174000)";
 
             case "date":
-                return $"date in YYYY-MM-DD format (e.g., 2023-12-31)";
+                return "date in YYYY-MM-DD format (e.g., 2023-12-31)";
 
             case "time":
-                return $"time in HH:MM:SS format (e.g., 14:30:45)";
+                return "time in HH:MM:SS format (e.g., 14:30:45)";
 
             case "phone-us":
-                return $"US phone number in (XXX) XXX-XXXX format";
+                return "US phone number in (XXX) XXX-XXXX format";
 
             case "alpha":
-                return $"alphabetic string (letters only)";
+                return "alphabetic string (letters only)";
 
             case "alpha-space":
-                return $"string containing only letters and spaces";
+                return "string containing only letters and spaces";
 
             case "alphanumeric":
-                return $"alphanumeric string (letters and numbers only)";
+                return "alphanumeric string (letters and numbers only)";
 
             case "lowercase":
-                return $"lowercase string";
+                return "lowercase string";
 
             case "uppercase":
-                return $"uppercase string";
+                return "uppercase string";
 
             case "numeric":
-                return $"string of digits ";
+                return "string of digits ";
 
             case "hex":
-                return $"hexadecimal string";
+                return "hexadecimal string";
 
             default:
                 // For pattern-based formats
