@@ -181,8 +181,24 @@ public class JsonSampleGenerator
 
     private string GetFormatDescription(StringTypeModel stringTypeModel, string propName)
     {
+        if (stringTypeModel.MaxLength.HasValue || stringTypeModel.MinLength.HasValue)
+        {
+            switch (stringTypeModel)
+            {
+                case { MaxLength: null, MinLength: not null}:
+                    return $"string value of at least {stringTypeModel.MinLength} characters";
+                case { MaxLength: not null, MinLength: null }:
+                    return $"string value of no more than {stringTypeModel.MaxLength} characters";
+                case { MaxLength: not null, MinLength: not null }:
+                    return $"string value between {stringTypeModel.MinLength} and {stringTypeModel.MaxLength} characters";
+            }
+        }
+
         if (string.IsNullOrEmpty(stringTypeModel.Format))
-            return $"string value";
+        {
+            return "string value";
+        }
+
 
         // Extract the format
         var format = stringTypeModel.Format;
