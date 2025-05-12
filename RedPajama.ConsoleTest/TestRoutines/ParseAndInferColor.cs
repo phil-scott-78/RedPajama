@@ -17,8 +17,6 @@ internal class ParseAndInferColor : ITestRoutine
 
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
-
         var prompt = """
                      Extract the item details and infer the color of the item:
                      ```
@@ -27,17 +25,7 @@ internal class ParseAndInferColor : ITestRoutine
                      ```
                      """;
 
-        ColorDescription color;
-        if (!model.IsThinkingModel())
-        {
-            color = await executor.InferAsync<ColorDescription>(prompt, JsonContext.Default, TypeModelContext.Default);
-        }
-        else
-        {
-            (color, _) =
-                (await executor.InferWithThoughtsAsync<ColorDescription>(prompt, JsonContext.Default,
-                    TypeModelContext.Default));
-        }
+        var color = await model.InferAsync<ColorDescription>(parameters, prompt, JsonContext.Default, TypeModelContext.Default);
 
         color.ShouldAllBe([
             i => i.Item.ShouldBe("Fresh Banana"),

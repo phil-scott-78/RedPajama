@@ -1,4 +1,4 @@
-﻿namespace RedPajama;
+namespace RedPajama;
 
 using System.Collections.Specialized;
 
@@ -19,7 +19,7 @@ public class GbnfGeneratorSettings
     /// <value>Default value is 512.</value>
     public int DefaultMaxLength { get; init; } = 512;
 
-    /// <summary>
+    /// <summary>'d
     /// The opening delimiter character for grammar rules.
     /// </summary>
     /// <value>Default value is '⟨' (U+27E8).</value>
@@ -30,6 +30,28 @@ public class GbnfGeneratorSettings
     /// </summary>
     /// <value>Default value is '⟩' (U+27E9).</value>
     public char ClosingDelimiter { get; init; } = '⟩';
+    
+    /// <summary>
+    /// Whether to include support for optional thinking tags in the generated grammar.
+    /// </summary>
+    /// <value>Default value is false.</value>
+    public bool IncludeThinkingTags { get; init; } = true;
+    
+    /// <summary>
+    /// The maximum length for thinking content.
+    /// </summary>
+    /// <value>Default value is 4086.</value>
+    public int MaxThinkingLength { get; init; } = 4086;
+
+    /// <summary>
+    /// The maximum number of array items to allow.
+    /// </summary>
+    public int DefaultArrayMaxLength { get; init; } = 8;
+
+    /// <summary>
+    /// The minumum number of array items to allow.
+    /// </summary>
+    public int DefaultArrayMinLength { get; init; } = 0;
 }
 
 /// <summary>
@@ -58,16 +80,35 @@ public class GbnfGenerator
         var rules = new OrderedDictionary<string, string>();
 
         // Add basic rules that are always needed
-        var charRule = $$"""char ::= [^"\\\x7F\x00-\x1F{{_settings.OpeningDelimiter}}{{_settings.ClosingDelimiter}}] | [\\] (["\\bfnrt] | "u" [0-9a-fA-F]{4})""";
+        int opening = _settings.OpeningDelimiter;
+        int closing = _settings.ClosingDelimiter;
+        var charRule = $"char ::= [^\"\\\\\\x7F\\x00-\\x1F\\u{opening:X4}\\u{closing:X4}] | [\\\\] ([\"\\\\bfnrt] | \"u\" [0-9a-fA-F]{{4}})";
         const string spaceRule = """space ::= | " " | "\n" [ \t]{0,20}""";
 
         rules["char"] = charRule;
         rules["space"] = spaceRule;
 
+        // Add optional thinking tag rules if enabled
+        if (_settings.IncludeThinkingTags)
+        {
+            var maxThink = _settings.MaxThinkingLength;
+            rules["think-content"] = $"think-content ::= ( normal-char | safe-lt ){{1,{maxThink}}}";
+            rules["normal-char"] = "normal-char ::= [^<]";
+            rules["safe-lt"] = "safe-lt ::= \"<\" ( [^/] | \"/\" [^t] | \"/t\" [^h] | \"/th\" [^i] | \"/thi\" [^n] | \"/thin\" [^k] | \"/think\" [^>] )";
+        }
+
         // Generate the root rule
         var rootRule = GenerateTypeRule(rootType, "root", rules);
-        
-        rules.Insert(0, "root", $"root ::= {rootRule}");
+
+        if (_settings.IncludeThinkingTags)
+        {
+            // root-with-thinking ::= "<think>" think-content "</think>" space root
+            rules.Insert(0, "root", $"root ::= (\"<think>\" think-content \"</think>\" space {rootRule}) | {rootRule}");
+        }
+        else
+        {
+            rules.Insert(0, "root", $"root ::= {rootRule}");
+        }
 
         return string.Join("\n", rules.Values);
     }
@@ -279,9 +320,44 @@ public class GbnfGenerator
             rules[itemRuleName] = $"{itemRuleName} ::= {itemRule}";
         }
 
-        return $"""
-                "[" space ({itemRuleName} ("," space {itemRuleName})*)? "]" space
-                """;
+        var minItems = arrayType.MinItems ?? _settings.DefaultArrayMinLength; // Use DefaultMinLength from GbnfGeneratorSettings
+        var maxItems = arrayType.MaxItems ?? _settings.DefaultArrayMaxLength; // Use DefaultMaxLength from GbnfGeneratorSettings
+
+        // Ensure minItems is not greater than maxItems
+        if (minItems > maxItems)
+        {
+            minItems = maxItems; // Or throw an error, or handle as per desired logic
+        }
+
+        string repetition;
+        if (minItems == 0 && maxItems == 0)
+        {
+            repetition = ""; // Empty array allowed, no items
+        }
+        else if (minItems == 0)
+        {
+            // Optional items, up to maxItems
+            repetition = $"({itemRuleName} (\",\" space {itemRuleName}){{0,{maxItems - 1}}})?";
+        }
+        else if (minItems == maxItems)
+        {
+            // Exact number of items
+            if (minItems == 1)
+            {
+                repetition = itemRuleName; // Single item
+            }
+            else
+            {
+                repetition = $"{itemRuleName} (\",\" space {itemRuleName}){{{minItems - 1},{minItems - 1}}}";
+            }
+        }
+        else
+        {
+            // Range of items
+            repetition = $"{itemRuleName} (\",\" space {itemRuleName}){{{minItems - 1},{(maxItems == int.MaxValue ? "" : (maxItems -1).ToString())}}}";
+        }
+
+        return $"\"[\" space {repetition} \"]\" space";
     }
 
     private string GenerateComplexTypeRule(TypeModel type, string ruleName, OrderedDictionary<string, string> rules)

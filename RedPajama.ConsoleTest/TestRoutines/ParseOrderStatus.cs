@@ -26,7 +26,6 @@ internal class ParseOrderStatus : ITestRoutine
 
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
         const string prompt = """
                               Extract the order ID, status and last update time from this notification:
                               ```
@@ -34,16 +33,7 @@ internal class ParseOrderStatus : ITestRoutine
                               ```
                               """;
 
-        Order order;
-        if (!model.IsThinkingModel())
-        {
-            order = await executor.InferAsync<Order>(prompt, JsonContext.Default, TypeModelContext.Default);
-        }
-        else
-        {
-            (order, _) =
-                (await executor.InferWithThoughtsAsync<Order>(prompt, JsonContext.Default, TypeModelContext.Default));
-        }
+        var order = await model.InferAsync<Order>(parameters, prompt, JsonContext.Default, TypeModelContext.Default);
 
         order.ShouldAllBe([
             o => o.OrderId.ShouldBe("A12345"),

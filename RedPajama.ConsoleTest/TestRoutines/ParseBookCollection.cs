@@ -23,8 +23,6 @@ internal class ParseBookCollection : ITestRoutine
    
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
-
         const string prompt = """
                               Extract the library name and book details:
                               ```
@@ -34,17 +32,8 @@ internal class ParseBookCollection : ITestRoutine
                               3. To Kill a Mockingbird by Harper Lee (1960)
                               ```
                               """;
-        
-        Library library;
-        if (!model.IsThinkingModel())
-        {
-            library = await executor.InferAsync<Library>(prompt, JsonContext.Default, TypeModelContext.Default);
-        }
-        else
-        {
-            (library, _) = (await executor.InferWithThoughtsAsync<Library>(prompt, JsonContext.Default, TypeModelContext.Default));
-        }
 
+        var library = await model.InferAsync<Library>(parameters, prompt, JsonContext.Default, TypeModelContext.Default);
 
         library.ShouldAllBe([
             l => l.Name.ShouldBe("Central Library"),

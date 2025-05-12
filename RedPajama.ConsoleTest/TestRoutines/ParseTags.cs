@@ -15,7 +15,6 @@ internal class ParseTags : ITestRoutine
 
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
         const string prompt = """
                               Extract the title and tags from this blog post:
                               ```
@@ -24,16 +23,7 @@ internal class ParseTags : ITestRoutine
                               ```
                               """;
 
-        BlogPost post;
-        if (!model.IsThinkingModel())
-        {
-            post = await executor.InferAsync<BlogPost>(prompt, JsonContext.Default, TypeModelContext.Default);
-        }
-        else
-        {
-            (post, _) = await executor.InferWithThoughtsAsync<BlogPost>(prompt, JsonContext.Default,
-                TypeModelContext.Default);
-        }
+        var post = await model.InferAsync<BlogPost>(parameters, prompt, JsonContext.Default, TypeModelContext.Default);
 
         post.ShouldAllBe([
             p => p.Title.ShouldBe("Understanding Machine Learning"),

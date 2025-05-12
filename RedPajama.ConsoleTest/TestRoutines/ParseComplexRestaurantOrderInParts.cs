@@ -59,7 +59,7 @@ internal class ParseComplexRestaurantOrderInParts : ITestRoutine
 
     public class Address
     {
-        [Description("The delivery address line, made up of the primary address number, predirectional, street name, suffix, postdirectional, secondary address identifier, and secondary address. You must not include City, State, and ZipCode.")]
+        [Description("The delivery address line, made up of the primary address number, predirectional, street name, suffix, postdirectional, secondary address identifier, and secondary address. You must not include City, State, and ZipCode. Example: 3025 Wentworth Ave, Suite 110")]
         public required string FullStreetAddress { get; init; }
         public required string City { get; init; }
         [AllowedValues("CA", "NY", "TX")] 
@@ -86,10 +86,6 @@ internal class ParseComplexRestaurantOrderInParts : ITestRoutine
 
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        if (model.IsThinkingModel()) return; // it'll be fine, just lazy
-        
-        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
-
         const string orderText = """
                                  Alright, I've got order number RTH789 here from Sarah Johnson. She placed it around 6:30 PM on January 27th 2024. It's currently being prepared and will be delivered to her apartment - that's 789 Oak Road, Apartment 4B in San Francisco, 94110. She left her phone number as (555) 123-4567.
 
@@ -114,8 +110,8 @@ internal class ParseComplexRestaurantOrderInParts : ITestRoutine
                                            ```
                                            """;
         
-        var orderCustomer = await executor.InferAsync<OrderCustomer>(extractCustomerPrompt, JsonContext.Default, TypeModelContext.Default);
-        var orderItems = await executor.InferAsync<OrderItems>(extractItemsPrompt, JsonContext.Default, TypeModelContext.Default);
+        var orderCustomer = await model.InferAsync<OrderCustomer>(parameters, extractCustomerPrompt, JsonContext.Default, TypeModelContext.Default);
+        var orderItems = await model.InferAsync<OrderItems>(parameters, extractItemsPrompt, JsonContext.Default, TypeModelContext.Default);
         
         orderCustomer.ShouldAllBe([
             o => o.OrderId.ShouldBe("RTH789"),

@@ -23,7 +23,7 @@ public class TypeModel : BaseTypeModel
     /// <summary>
     /// Gets the properties of the type model.
     /// </summary>
-    internal PropertyModel[] Properties { get; }
+    public PropertyModel[] Properties { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TypeModel"/> class.
@@ -235,12 +235,24 @@ public class GuidTypeModel(string name) : BaseTypeModel(name);
 /// </summary>
 /// <param name="name">The name of the type model.</param>
 /// <param name="arrayType">The type of the array elements.</param>
-public class ArrayTypeModel(string name, BaseTypeModel arrayType) : BaseTypeModel(name)
+/// <param name="minItems">The minimum number of items in the array.</param>
+/// <param name="maxItems">The maximum number of items in the array.</param>
+public class ArrayTypeModel(string name, BaseTypeModel arrayType, int? minItems = null, int? maxItems = null) : BaseTypeModel(name)
 {
     /// <summary>
     /// Gets the type of the array elements.
     /// </summary>
     public BaseTypeModel ArrayType { get; } = arrayType;
+
+    /// <summary>
+    /// Gets the minimum number of items in the array.
+    /// </summary>
+    public int? MinItems { get; } = minItems;
+
+    /// <summary>
+    /// Gets the maximum number of items in the array.
+    /// </summary>
+    public int? MaxItems { get; } = maxItems;
 }
 
 /// <summary>

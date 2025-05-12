@@ -19,7 +19,7 @@ NativeLogConfig.llama_log_set((a, b) =>
         return;
     }
 
-    // Debug.WriteLine($"[{a}] - {b.Trim()} ");
+    Debug.WriteLine($"[{a}] - {b.Trim()} ");
 });
 
 AnsiConsole.WriteLine();
@@ -78,7 +78,7 @@ foreach (var modelFile in models)
 {
     var parameters = new ModelParams(modelFile)
     {
-        ContextSize = 1000,
+        ContextSize = 4000,
         GpuLayerCount = -1,
     };
 
@@ -91,7 +91,7 @@ foreach (var modelFile in models)
     Dictionary<string,  (bool Success, TimeSpan Elapsed)> timing = new(); 
     foreach (var r in tests)
     {
-        bool result = false;
+        var result = false;
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         try

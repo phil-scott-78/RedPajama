@@ -223,8 +223,7 @@ namespace RedPajama.SourceGenerator
         private string GetPropertyTypeCode(IPropertySymbol property)
         {
             // Handle arrays and collections with string elements
-            if (property.Type is IArrayTypeSymbol arrayType && 
-                arrayType.ElementType.SpecialType == SpecialType.System_String)
+            if (property.Type is IArrayTypeSymbol { ElementType: { SpecialType: SpecialType.System_String } })
             {
                 // If property has AllowedValues attribute, apply it to the element type
                 if (HasAllowedValuesAttribute(property))
@@ -249,62 +248,133 @@ namespace RedPajama.SourceGenerator
             return GetTypeCode(property.Type, property);
         }
 
+        private string GetNormalizedTypeNameForModel(ITypeSymbol typeSymbol)
+        {
+            if (typeSymbol == null) return "object"; // Fallback for safety
+
+            switch (typeSymbol.SpecialType)
+            {
+                case SpecialType.System_String: return "string";
+                case SpecialType.System_Boolean: return "bool";   // Ensures "bool" for Boolean
+                case SpecialType.System_Int16:   // short
+                case SpecialType.System_Int32:   // int
+                    return "int";                // Ensures "int" for Int32
+                case SpecialType.System_Int64:   // long
+                    return "long";
+                case SpecialType.System_Decimal: return "decimal";
+                case SpecialType.System_Single:  // float
+                    return "float";
+                case SpecialType.System_Double:  // double
+                    return "double";
+                case SpecialType.System_DateTime:
+                    return "Date";               // Ensures "Date" for DateTime
+                // Add other special types if they need specific model names
+            }
+
+            // Fallback for types not covered by SpecialType or needing specific name handling
+            // (e.g., Guid, DateTimeOffset, enums, complex types)
+            string name = typeSymbol.Name;
+            switch (name)
+            {
+                case "DateTimeOffset":
+                    return "Date"; // Align DateTimeOffset with DateTime
+                case "Guid":
+                    return "Guid";
+                default:
+                    // For enums, other complex types, or any unhandled primitives,
+                    // use the type's .NET name. This matches TypeModelBuilder's fallback.
+                    return name;
+            }
+        }
+
         private string GetTypeCode(ITypeSymbol typeSymbol, IPropertySymbol property)
         {
-            // Handle primitive types
+            var originalTypeName = typeSymbol.Name; // Keep for specific cases if needed below
+
+            // Use normalized names for the model's "Name" property
+            var modelName = GetNormalizedTypeNameForModel(typeSymbol);
+
             switch (typeSymbol.SpecialType)
             {
                 case SpecialType.System_String:
-                    return GetStringTypeModelCode(property);
+                    return GetStringTypeModelCode(property); // Assumes GetStringTypeModelCode uses "string" internally
+                case SpecialType.System_Int16: // Added short for completeness
                 case SpecialType.System_Int32:
-                    return "new IntegerTypeModel(\"int\")";
+                    return $"new IntegerTypeModel(\"{modelName}\")"; // Uses "int"
                 case SpecialType.System_Int64:
-                    return "new IntegerTypeModel(\"long\")";
+                    return $"new IntegerTypeModel(\"{modelName}\")"; // Uses "long"
                 case SpecialType.System_Decimal:
-                    return "new DecimalTypeModel(\"decimal\")";
+                    return $"new DecimalTypeModel(\"{modelName}\")"; // Uses "decimal"
                 case SpecialType.System_Double:
-                    return "new DecimalTypeModel(\"double\")";
+                    return $"new DecimalTypeModel(\"{modelName}\")"; // Uses "double"
                 case SpecialType.System_Single:
-                    return "new DecimalTypeModel(\"float\")";
+                    return $"new DecimalTypeModel(\"{modelName}\")"; // Uses "float"
                 case SpecialType.System_Boolean:
-                    return "new BoolTypeModel(\"bool\")";
+                    return $"new BoolTypeModel(\"{modelName}\")"; // Uses "bool"
+                case SpecialType.System_DateTime: // Already handled by GetNormalizedTypeNameForModel to "Date"
+                     return $"new DateTypeModel(\"{modelName}\")"; // Uses "Date"
+
             }
 
-            // Handle other common types
-            var typeName = typeSymbol.Name;
-
-            switch (typeName)
+            // Handle by name for types not covered by SpecialType or needing specific logic
+            switch (originalTypeName) // Using originalTypeName here for direct .NET type name matching
             {
-                case "DateTime" or "DateTimeOffset":
-                    return $"new DateTypeModel(\"{typeName}\")";
-                case "Guid":
-                    return "new GuidTypeModel(\"Guid\")";
+                case "DateTimeOffset": // GetNormalizedTypeNameForModel handles this to "Date"
+                    return $"new DateTypeModel(\"{modelName}\")"; // Uses "Date"
+                case "Guid": // GetNormalizedTypeNameForModel handles this to "Guid"
+                    return $"new GuidTypeModel(\"{modelName}\")"; // Uses "Guid"
             }
 
             switch (typeSymbol)
             {
-                // Handle arrays
                 case IArrayTypeSymbol arrayType:
                 {
-                    var elementTypeName = arrayType.ElementType.Name;
-                    return $"new ArrayTypeModel(\"{elementTypeName}Array\", {GetTypeCode(arrayType.ElementType, null)})";
+                    var elementType = arrayType.ElementType;
+                    var elementTypeCode = GetTypeCode(elementType, null); // Recursive call for element type model
+                    var arrayElementModelName = GetNormalizedTypeNameForModel(elementType); // Normalized name for "int" in "intArray"
+                    var minItems = GetMinLengthAttribute(property);
+                    var maxItems = GetMaxLengthAttribute(property);
+                    var minItemsStr = minItems.HasValue ? minItems.Value.ToString() : "null";
+                    var maxItemsStr = maxItems.HasValue ? maxItems.Value.ToString() : "null";
+                    
+                    // Special handling for string arrays that might have specific attributes via GetPropertyTypeCode
+                    if (elementType.SpecialType == SpecialType.System_String && HasAllowedValuesAttribute(property) && property != null)
+                    {
+                        // GetPropertyTypeCode likely handles the "stringArray" name and StringTypeModel correctly
+                        return GetPropertyTypeCode(property); 
+                    }
+
+                    return $"new ArrayTypeModel(\"{arrayElementModelName}Array\", {elementTypeCode}, {minItemsStr}, {maxItemsStr})";
                 }
-                // Handle collections (List<T>, IEnumerable<T>, etc.)
                 case INamedTypeSymbol { IsGenericType: true } namedType when IsCollectionType(namedType) && namedType.TypeArguments.Length == 1:
                 {
-                    var elementType = namedType.TypeArguments[0];
-                    var elementTypeName = elementType.Name;
-                    return $"new ArrayTypeModel(\"{elementTypeName}Array\", {GetTypeCode(elementType, null)})";
+                    var elementTypeArgument = namedType.TypeArguments[0];
+                    var elementTypeCode = GetTypeCode(elementTypeArgument, null);
+                    var collectionElementModelName = GetNormalizedTypeNameForModel(elementTypeArgument);
+                    var minItems = GetMinLengthAttribute(property);
+                    var maxItems = GetMaxLengthAttribute(property);
+                    var minItemsStr = minItems.HasValue ? minItems.Value.ToString() : "null";
+                    var maxItemsStr = maxItems.HasValue ? maxItems.Value.ToString() : "null";
+
+                    // Special handling for string collections similar to string arrays
+                    if (elementTypeArgument.SpecialType == SpecialType.System_String && HasAllowedValuesAttribute(property) && property != null)
+                    {
+                         // GetPropertyTypeCode likely handles the "stringArray" name and StringTypeModel correctly
+                        return GetPropertyTypeCode(property);
+                    }
+
+                    return $"new ArrayTypeModel(\"{collectionElementModelName}Array\", {elementTypeCode}, {minItemsStr}, {maxItemsStr})";
                 }
             }
-
-            // Handle enums
             if (typeSymbol.TypeKind == TypeKind.Enum)
             {
-                return $"Build{GetLongName(typeSymbol)}EnumModel()";
+                // Enum model name is taken directly from enum type name, e.g., "TestEnum"
+                // This matches TypeModelBuilder which uses enumType.Name.
+                return $"Build{GetLongName(typeSymbol)}EnumModel()"; 
             }
 
-            // For complex types, call their helper method
+            // For complex types (classes/structs), the model name is the type's own name.
+            // This matches TypeModelBuilder which uses type.Name for complex types.
             return $"Build{GetLongName(typeSymbol)}Model()";
         }
 
@@ -369,6 +439,21 @@ namespace RedPajama.SourceGenerator
             return "new StringTypeModel(\"string\")";
         }
 
+        // Helper methods to extract attribute values (assuming they exist or would be added)
+        private static int? GetMinLengthAttribute(IPropertySymbol property)
+        {
+            if (property == null) return null;
+            var minLengthAttr = property.GetAttributes().FirstOrDefault(ad => ad.AttributeClass?.Name == "MinLengthAttribute");
+            return minLengthAttr?.ConstructorArguments.FirstOrDefault().Value as int?;
+        }
+
+        private static int? GetMaxLengthAttribute(IPropertySymbol property)
+        {
+            if (property == null) return null;
+            var maxLengthAttr = property.GetAttributes().FirstOrDefault(ad => ad.AttributeClass?.Name == "MaxLengthAttribute");
+            return maxLengthAttr?.ConstructorArguments.FirstOrDefault().Value as int?;
+        }
+        
         private static bool HasAllowedValuesAttribute(IPropertySymbol property)
         {
             return property.GetAttributes()

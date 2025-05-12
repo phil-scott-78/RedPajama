@@ -16,8 +16,6 @@ internal class ParseEmailAndExtractGuid : ITestRoutine
    
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
-
         var prompt = """
                      Extract the user details from this email notification:
 
@@ -38,16 +36,8 @@ internal class ParseEmailAndExtractGuid : ITestRoutine
                      Customer Management System
                      ```
                      """;
-        
-        UserRecord user;
-        if (!model.IsThinkingModel())
-        {
-            user = await executor.InferAsync<UserRecord>(prompt, JsonContext.Default, TypeModelContext.Default);
-        }
-        else
-        {
-            (user, _) = (await executor.InferWithThoughtsAsync<UserRecord>(prompt, JsonContext.Default, TypeModelContext.Default));
-        }
+
+        var user = await model.InferAsync<UserRecord>(parameters, prompt, JsonContext.Default, TypeModelContext.Default);
 
         user.ShouldAllBe([
             u => u.Username.ShouldBe("johndoe42"),

@@ -26,6 +26,16 @@ public class JsonSampleGeneratorSettings
     /// Gets the string used for indentation in pretty printed JSON.
     /// </summary>
     public string Indent { get; init; } = "    ";
+
+    /// <summary>
+    /// Gets the default minimum number of items for arrays.
+    /// </summary>
+    public int DefaultMinArrayItems { get; init; } = 0;
+
+    /// <summary>
+    /// Gets the default maximum number of items for arrays.
+    /// </summary>
+    public int DefaultMaxArrayItems { get; init; } = 16;
 }
 
 /// <summary>

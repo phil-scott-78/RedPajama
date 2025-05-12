@@ -27,7 +27,6 @@ internal class ParseNestedAddress : ITestRoutine
    
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
         const string prompt = """
                               Extract the customer name and addresses from this order:
                               ```
@@ -36,16 +35,8 @@ internal class ParseNestedAddress : ITestRoutine
                               Bill to: 456 Park Ave, New York, NY 10022
                               ```
                               """;
-        
-        Customer customer;
-        if (!model.IsThinkingModel())
-        {
-            customer = await executor.InferAsync<Customer>(prompt,JsonContext.Default, TypeModelContext.Default);
-        }
-        else
-        {
-            (customer, _) = await executor.InferWithThoughtsAsync<Customer>(prompt, JsonContext.Default, TypeModelContext.Default);
-        }
+
+        var customer = await model.InferAsync<Customer>(parameters, prompt,JsonContext.Default, TypeModelContext.Default);
 
         customer.ShouldAllBe([
             c => c.Name.ShouldBe("John Smith"),

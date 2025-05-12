@@ -14,7 +14,6 @@ internal class ParseNameAndEmail : ITestRoutine
 
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
         const string prompt = """
                               Extract the first name, last name and e-mail from this text:
                               ```
@@ -22,15 +21,7 @@ internal class ParseNameAndEmail : ITestRoutine
                               ```
                               """;
 
-        Person person;
-        if (!model.IsThinkingModel())
-        {
-            person = await executor.InferAsync<Person>(prompt, JsonContext.Default, TypeModelContext.Default);
-        }
-        else
-        {
-            (person, _) = await executor.InferWithThoughtsAsync<Person>(prompt, JsonContext.Default, TypeModelContext.Default);
-        }
+        var person = await model.InferAsync<Person>(parameters, prompt, JsonContext.Default, TypeModelContext.Default);
 
         person.ShouldAllBe([
             p => p.FirstName.ShouldBe("Marcus"),

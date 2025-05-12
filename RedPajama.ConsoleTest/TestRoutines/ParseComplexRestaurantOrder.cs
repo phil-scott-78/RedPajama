@@ -76,7 +76,7 @@ internal class ParseComplexRestaurantOrder : ITestRoutine
 
     public async Task Run(LLamaWeights model, IContextParams parameters)
     {
-        var executor = new StatelessExecutor(model, parameters) { ApplyTemplate = true };
+        // var executor = new StatelessExecutor(model, parameters);
         const string prompt = """
                               Parse this restaurant order. When extracting the address, follow these rules:
                               
@@ -92,16 +92,7 @@ internal class ParseComplexRestaurantOrder : ITestRoutine
                               ```
                               """;
 
-        Order order;
-        if (!model.IsThinkingModel())
-        {
-            order = await executor.InferAsync<Order>(prompt, JsonContext.Default, TypeModelContext.Default);
-        }
-        else
-        {
-            (order, _) = (await executor.InferWithThoughtsAsync<Order>(prompt, JsonContext.Default, TypeModelContext.Default));
-        }
-
+        var order = await model.InferAsync<Order>(parameters, prompt, JsonContext.Default, TypeModelContext.Default);
 
         order.ShouldAllBe([
             o => o.OrderId.ShouldBe("RTH789"),
